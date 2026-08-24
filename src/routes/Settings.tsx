@@ -1,36 +1,73 @@
-import { H2, H5, Card, Button, ButtonGroup, Classes } from "@blueprintjs/core";
-import { useThemePreference } from "../lib/theme";
+import {
+  Card,
+  H2,
+  H5,
+  Button,
+  ButtonGroup,
+  ProgressBar,
+  Intent,
+  Classes,
+} from "@blueprintjs/core";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { getVersion } from "@tauri-apps/api/app";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { showError, showSuccess } from "../lib/toaster";
-
-const versionQuery = useQuery({
-  queryKey: ["appVersion"],
-  queryFn: getVersion,
-});
-
-const checkUpdateMutation = useMutation({
-  mutationFn: async () => {
-    const update = await check();
-    if (!update) return null;
-    await update.downloadAndInstall();
-    return update;
-  },
-  onSuccess: async (update) => {
-    if (!update) {
-      showSuccess("You're up to date");
-    } else {
-      showSuccess(`Updated to ${update.version} — restarting…`);
-      await relaunch();
-    }
-  },
-  onError: (err) => showError(`Update check failed: ${String(err)}`),
-});
+import { formatBytes } from "../lib/format";
+import { showSuccess, showError } from "../lib/toaster";
+import { useThemePreference } from "../lib/theme";
 
 export function SettingsPage() {
   const [preference, setPreference] = useThemePreference();
+  const [progress, setProgress] = useState<{
+    downloaded: number;
+    total: number;
+  } | null>(null);
+
+  const versionQuery = useQuery({
+    queryKey: ["appVersion"],
+    queryFn: getVersion,
+  });
+
+  const checkUpdateMutation = useMutation({
+    mutationFn: async () => {
+      const update = await check();
+      if (!update) return null;
+
+      let downloaded = 0;
+      let total = 0;
+
+      await update.downloadAndInstall((event) => {
+        switch (event.event) {
+          case "Started":
+            total = event.data.contentLength ?? 0;
+            setProgress({ downloaded: 0, total });
+            break;
+          case "Progress":
+            downloaded += event.data.chunkLength;
+            setProgress({ downloaded, total });
+            break;
+          case "Finished":
+            setProgress(null);
+            break;
+        }
+      });
+
+      return update;
+    },
+    onSuccess: async (update) => {
+      if (!update) {
+        showSuccess("You're up to date");
+      } else {
+        showSuccess(`Updated to ${update.version} — restarting…`);
+        await relaunch();
+      }
+    },
+    onError: (err) => {
+      setProgress(null);
+      showError(`Update check failed: ${String(err)}`);
+    },
+  });
 
   return (
     <div style={{ maxWidth: 520 }}>
@@ -67,18 +104,52 @@ export function SettingsPage() {
         >
           Current version: v{versionQuery.data ?? "…"}
         </div>
-        <Button
-          small
-          text="Check for updates"
-          loading={checkUpdateMutation.isPending}
-          onClick={() => checkUpdateMutation.mutate()}
-        />
+
+        {progress ? (
+          <div style={{ marginBottom: 10 }}>
+            {progress.total > 0 ? (
+              <>
+                <ProgressBar
+                  value={progress.downloaded / progress.total}
+                  intent={Intent.PRIMARY}
+                  animate={false}
+                />
+                <div
+                  className={Classes.TEXT_MUTED}
+                  style={{ fontSize: 12, marginTop: 6 }}
+                >
+                  {formatBytes(progress.downloaded)} of{" "}
+                  {formatBytes(progress.total)}
+                </div>
+              </>
+            ) : (
+              <>
+                <ProgressBar intent={Intent.PRIMARY} />
+                <div
+                  className={Classes.TEXT_MUTED}
+                  style={{ fontSize: 12, marginTop: 6 }}
+                >
+                  {formatBytes(progress.downloaded)} downloaded
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <Button
+            small
+            text="Check for updates"
+            loading={checkUpdateMutation.isPending}
+            onClick={() => checkUpdateMutation.mutate()}
+          />
+        )}
       </Card>
 
       <Card>
         <H5>About</H5>
         <div style={{ fontWeight: 600 }}>Syntrok InfraNet</div>
-        <div style={{ fontSize: 12, opacity: 0.6 }}>Version 0.1.0</div>
+        <div style={{ fontSize: 12, opacity: 0.6 }}>
+          Version {versionQuery.data ?? "…"}
+        </div>
       </Card>
     </div>
   );
