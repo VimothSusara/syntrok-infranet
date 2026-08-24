@@ -6,7 +6,7 @@ on:
       - "v*"
 
 permissions:
-      contents: write
+  contents: write
 
 jobs:
   verify-release-access:
@@ -23,7 +23,7 @@ jobs:
           gh release create "smoke-test-${{ github.run_id }}" \
             --draft --title "smoke test" --notes "temporary — safe to ignore" \
             --target "${{ github.sha }}"
-          gh release delete "smoke-test-${{ github.run_id }}" --yes --cleanup-tag
+          gh release delete "smoke-test-${{ github.run_id }}" --yes
 
   release:
     needs: verify-release-access
