@@ -5,10 +5,28 @@ on:
     tags:
       - "v*"
 
+permissions:
+      contents: write
+
 jobs:
-  release:
+  verify-release-access:
+    runs-on: ubuntu-latest
     permissions:
       contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify the release token can actually create releases
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          gh release create "smoke-test-${{ github.run_id }}" \
+            --draft --title "smoke test" --notes "temporary — safe to ignore" \
+            --target "${{ github.sha }}"
+          gh release delete "smoke-test-${{ github.run_id }}" --yes --cleanup-tag
+
+  release:
+    needs: verify-release-access
     strategy:
       fail-fast: false
       matrix:
@@ -35,7 +53,7 @@ jobs:
 
       - uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
