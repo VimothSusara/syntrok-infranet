@@ -1,0 +1,41 @@
+{
+  "name": "tauri-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "db:reset": "powershell -Command \"Remove-Item -Force -ErrorAction SilentlyContinue \\\"$env:APPDATA\\com.syntrok.infranet\\infranet.db\\\", \\\"$env:APPDATA\\com.syntrok.infranet\\infranet.db-wal\\\", \\\"$env:APPDATA\\com.syntrok.infranet\\infranet.db-shm\\\"\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bump-version": "node scripts/bump-version.mjs"
+  },
+  "dependencies": {
+    "@blueprintjs/core": "^6.18.0",
+    "@blueprintjs/icons": "^6.13.0",
+    "@blueprintjs/table": "^6.2.4",
+    "@tanstack/react-query": "^5.102.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-process": "~2.3.1",
+    "@tauri-apps/plugin-sql": "~2.4.0",
+    "@tauri-apps/plugin-store": "~2.4.4",
+    "@tauri-apps/plugin-updater": "~2.10.1",
+    "clsx": "^2.1.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4",
+    "vitest": "^4.1.11"
+  }
+}

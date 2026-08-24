@@ -1,0 +1,20 @@
+export const queryKeys = {
+    themePreference: () => ["themePreference"] as const,
+    workspace: () => ["workspace"] as const,
+    projects: (workspaceId: string) => ["projects", workspaceId] as const,
+    project: (projectId: string) => ["project", projectId] as const,
+    environments: (projectId: string) => ["environments", projectId] as const,
+    environment: (environmentId: string) => ["environment", environmentId] as const,
+    connections: (environmentId: string) => ["connections", environmentId] as const,
+    connection: (connectionId: string) => ["connection", connectionId] as const,
+    resource: (connectionId: string) => ["resource", connectionId] as const,
+    auditEvents: (connectionId: string) => ["auditEvents", connectionId] as const,
+    allAuditEvents: (params: { page: number; pageSize: number; search: string; result: string }) =>
+        ["allAuditEvents", params] as const,
+    dashboardStats: (workspaceId: string) => ["dashboardStats", workspaceId] as const,
+    unverifiedConnections: (workspaceId: string) => ["unverifiedConnections", workspaceId] as const,
+    recentAuditEvents: (workspaceId: string) => ["recentAuditEvents", workspaceId] as const,
+    systemInfo: (connectionId: string) => ["systemInfo", connectionId] as const,
+    services: (connectionId: string) => ["services", connectionId] as const,
+    systemMetrics: (connectionId: string) => ["systemMetrics", connectionId] as const,
+};

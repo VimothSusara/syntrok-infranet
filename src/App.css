@@ -1,0 +1,35 @@
+/* src/App.css */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.app-shell {
+  height: 100vh;
+}
+
+.app-shell.bp5-dark {
+  background-color: #111418;
+  color: #f6f7f9;
+}
+
+.app-columns {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-column {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
