@@ -30,6 +30,12 @@ const NAV_ITEMS: {
     icon: "cog",
     match: (p) => p.startsWith("/settings"),
   },
+  {
+    to: "/debug-whm",
+    label: "Debug WHM",
+    icon: "panel-table",
+    match: (p) => p.startsWith("/debug-whm"),
+  }
 ];
 
 export function Sidebar() {

@@ -18,4 +18,9 @@ export const queryKeys = {
     services: (connectionId: string) => ["services", connectionId] as const,
     systemMetrics: (connectionId: string) => ["systemMetrics", connectionId] as const,
     credentials: () => ["credentials"] as const,
+    whmServerInfo: (connectionId: string) => ["whmServerInfo", connectionId] as const,
+    whmAccounts: (connectionId: string) => ["whmAccounts", connectionId] as const,
+    cpanelAccountInfo: (connectionId: string) => ["cpanelAccountInfo", connectionId] as const,
+    cpanelMailboxes: (connectionId: string) => ["cpanelMailboxes", connectionId] as const,
+    cpanelDomains: (connectionId: string) => ["cpanelDomains", connectionId] as const,
 };

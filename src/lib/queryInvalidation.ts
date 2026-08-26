@@ -22,4 +22,9 @@ export function invalidateConnectionState(
     queryClient.invalidateQueries({ queryKey: queryKeys.unverifiedConnections(params.workspaceId) });
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(params.workspaceId) });
     queryClient.invalidateQueries({ queryKey: queryKeys.recentAuditEvents(params.workspaceId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.whmServerInfo(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.whmAccounts(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelAccountInfo(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelMailboxes(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelDomains(params.connectionId) });
 }

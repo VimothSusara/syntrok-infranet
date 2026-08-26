@@ -1,3 +1,6 @@
+import type { CpanelCredentialKind, SshCredentialKind, WhmCredentialKind } from "./credentials";
+
+export type ConnectionKind = "ssh" | "whm" | "cpanel";
 export interface Workspace {
     id: string;
     name: string;
@@ -19,7 +22,7 @@ export interface Environment {
 
 export interface Credential {
     id: string;
-    kind: 'ssh_password' | 'ssh_private_key';
+    kind: SshCredentialKind | WhmCredentialKind | CpanelCredentialKind;
     label: string;
     username: string;
 }
@@ -27,7 +30,7 @@ export interface Credential {
 export interface Connection {
     id: string;
     environment_id: string;
-    kind: 'ssh';
+    kind: ConnectionKind;
     host: string;
     port: number;
     credential_id: string;

@@ -1,5 +1,5 @@
 import { getDb } from '../lib/db';
-import { createSshCredential, type SshCredentialKind } from "./credentials";
+import { createSshCredential, createWhmCredential, createCpanelCredential, type SshCredentialKind } from "./credentials";
 import { recordAudit } from "./audit";
 import type { Connection } from './types';
 import { invoke } from "@tauri-apps/api/core";
@@ -25,6 +25,26 @@ export type CredentialInput =
     | { mode: "new"; authKind: SshCredentialKind; username: string; secret: string; passphrase?: string }
     | { mode: "existing"; credentialId: string };
 
+async function insertConnectionAndResource(
+    environmentId: string,
+    kind: "ssh" | "whm" | "cpanel",
+    host: string,
+    port: number,
+    credentialId: string,
+): Promise<string> {
+    const db = await getDb();
+    const id = crypto.randomUUID();
+    await db.execute(
+        "INSERT INTO connection (id, environment_id, kind, host, port, credential_id) VALUES ($1, $2, $3, $4, $5, $6)",
+        [id, environmentId, kind, host, port, credentialId],
+    );
+    await db.execute(
+        "INSERT INTO resource (id, connection_id, kind, label) VALUES ($1, $2, 'server', $3)",
+        [crypto.randomUUID(), id, host],
+    );
+    return id;
+}
+
 export async function addSshConnection(
     environmentId: string,
     host: string,
@@ -42,18 +62,25 @@ export async function addSshConnection(
             )
             : credential.credentialId;
 
-    const db = await getDb();
-    const id = crypto.randomUUID();
-    await db.execute(
-        "INSERT INTO connection (id, environment_id, kind, host, port, credential_id) VALUES ($1, $2, 'ssh', $3, $4, $5)",
-        [id, environmentId, host, port, credentialId],
-    );
-    await db.execute(
-        "INSERT INTO resource (id, connection_id, kind, label) VALUES ($1, $2, 'server', $3)",
-        [crypto.randomUUID(), id, host],
-    );
+    return insertConnectionAndResource(environmentId, "ssh", host, port, credentialId);
+}
 
-    return id;
+export type WhmCredentialInput =
+    | { mode: "new"; username: string; apiToken: string }
+    | { mode: "existing"; credentialId: string };
+
+export async function addWhmConnection(
+    environmentId: string,
+    host: string,
+    port: number,
+    credential: WhmCredentialInput,
+): Promise<string> {
+    const credentialId =
+        credential.mode === "new"
+            ? await createWhmCredential(`${credential.username}@${host}`, credential.username, credential.apiToken)
+            : credential.credentialId;
+
+    return insertConnectionAndResource(environmentId, "whm", host, port, credentialId);
 }
 
 // Called after any successful SSH operation with the fingerprint the server
@@ -138,34 +165,16 @@ export async function deleteConnection(connectionId: string): Promise<void> {
         await cleanupOrphanedCredential(credentialId);
     }
 }
-
-export async function updateConnection(
+async function applyConnectionUpdate(
     connectionId: string,
-    input: { host: string; port: number; credential: CredentialInput },
+    existing: { credential_id: string; host: string; port: number },
+    newHost: string,
+    newPort: number,
+    newCredentialId: string,
 ): Promise<void> {
     const db = await getDb();
-
-    const rows = await db.select<{ credential_id: string; host: string; port: number }[]>(
-        "SELECT credential_id, host, port FROM connection WHERE id = $1",
-        [connectionId],
-    );
-    const existing = rows[0];
-    if (!existing) throw new Error("Connection not found");
-
     const oldCredentialId = existing.credential_id;
-    const hostOrPortChanged = existing.host !== input.host || existing.port !== input.port;
-
-    const newCredentialId =
-        input.credential.mode === "new"
-            ? await createSshCredential(
-                input.credential.authKind,
-                `${input.credential.username}@${input.host}`,
-                input.credential.username,
-                input.credential.secret,
-                input.credential.passphrase,
-            )
-            : input.credential.credentialId;
-
+    const hostOrPortChanged = existing.host !== newHost || existing.port !== newPort;
     const credentialChanged = newCredentialId !== oldCredentialId;
 
     if (hostOrPortChanged || credentialChanged) {
@@ -173,13 +182,13 @@ export async function updateConnection(
             hostOrPortChanged
                 ? "UPDATE connection SET host = $1, port = $2, credential_id = $3, last_verified_at = NULL, known_host_fingerprint = NULL WHERE id = $4"
                 : "UPDATE connection SET host = $1, port = $2, credential_id = $3, last_verified_at = NULL WHERE id = $4",
-            [input.host, input.port, newCredentialId, connectionId],
+            [newHost, newPort, newCredentialId, connectionId],
         );
         await db.execute("UPDATE resource SET metadata = NULL WHERE connection_id = $1", [connectionId]);
 
         const changes: string[] = [];
         if (hostOrPortChanged) {
-            changes.push(`address changed to ${input.host}:${input.port} (was ${existing.host}:${existing.port})`);
+            changes.push(`address changed to ${newHost}:${newPort} (was ${existing.host}:${existing.port})`);
         }
         if (credentialChanged) changes.push("credential changed");
         await recordAudit({
@@ -192,10 +201,88 @@ export async function updateConnection(
     }
 
     if (hostOrPortChanged) {
-        await db.execute("UPDATE resource SET label = $1 WHERE connection_id = $2", [input.host, connectionId]);
+        await db.execute("UPDATE resource SET label = $1 WHERE connection_id = $2", [newHost, connectionId]);
     }
 
     if (credentialChanged) {
         await cleanupOrphanedCredential(oldCredentialId);
     }
+}
+
+async function getConnectionForUpdate(connectionId: string) {
+    const db = await getDb();
+    const rows = await db.select<{ credential_id: string; host: string; port: number }[]>(
+        "SELECT credential_id, host, port FROM connection WHERE id = $1",
+        [connectionId],
+    );
+    const existing = rows[0];
+    if (!existing) throw new Error("Connection not found");
+    return existing;
+}
+
+export async function updateConnection(
+    connectionId: string,
+    input: { host: string; port: number; credential: CredentialInput },
+): Promise<void> {
+    const existing = await getConnectionForUpdate(connectionId);
+
+    const newCredentialId =
+        input.credential.mode === "new"
+            ? await createSshCredential(
+                input.credential.authKind,
+                `${input.credential.username}@${input.host}`,
+                input.credential.username,
+                input.credential.secret,
+                input.credential.passphrase,
+            )
+            : input.credential.credentialId;
+
+    await applyConnectionUpdate(connectionId, existing, input.host, input.port, newCredentialId);
+}
+
+export async function updateWhmConnection(
+    connectionId: string,
+    input: { host: string; port: number; credential: WhmCredentialInput },
+): Promise<void> {
+    const existing = await getConnectionForUpdate(connectionId);
+
+    const newCredentialId =
+        input.credential.mode === "new"
+            ? await createWhmCredential(`${input.credential.username}@${input.host}`, input.credential.username, input.credential.apiToken)
+            : input.credential.credentialId;
+
+    await applyConnectionUpdate(connectionId, existing, input.host, input.port, newCredentialId);
+}
+
+
+export type CpanelCredentialInput =
+    | { mode: "new"; username: string; apiToken: string }
+    | { mode: "existing"; credentialId: string };
+
+export async function addCpanelConnection(
+    environmentId: string,
+    host: string,
+    port: number,
+    credential: CpanelCredentialInput,
+): Promise<string> {
+    const credentialId =
+        credential.mode === "new"
+            ? await createCpanelCredential(`${credential.username}@${host}`, credential.username, credential.apiToken)
+            : credential.credentialId;
+
+    return insertConnectionAndResource(environmentId, "cpanel", host, port, credentialId);
+}
+
+export async function updateCpanelConnection(
+    connectionId: string,
+    input: { host: string; port: number; credential: CpanelCredentialInput },
+): Promise<void> {
+    const existing = await getConnectionForUpdate(connectionId);
+
+    const newCredentialId =
+        input.credential.mode === "new"
+            ? await createCpanelCredential(`${input.credential.username}@${input.host}`, input.credential.username, input.credential.apiToken)
+            : input.credential.credentialId;
+
+    await applyConnectionUpdate(connectionId, existing, input.host, input.port, newCredentialId);
 }

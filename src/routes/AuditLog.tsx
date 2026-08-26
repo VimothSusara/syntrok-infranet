@@ -7,7 +7,6 @@ import {
   Intent,
   HTMLSelect,
   InputGroup,
-  Button,
   Spinner,
   NonIdealState,
   Classes,
@@ -15,6 +14,7 @@ import {
 import { listAllAuditEvents } from "../domain/audit";
 import { queryKeys } from "../domain/queryKeys";
 import { PageHeader } from "../components/PageHeader";
+import { PaginationControls } from "../components/PaginationControls";
 
 const PAGE_SIZE = 25;
 
@@ -122,35 +122,12 @@ export function AuditLogPage() {
               </tbody>
             </HTMLTable>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: 14,
-              }}
-            >
-              <div className={Classes.TEXT_MUTED} style={{ fontSize: 12 }}>
-                {auditQuery.data.total} total
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Button
-                  small
-                  text="Previous"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                />
-                <div style={{ fontSize: 12 }}>
-                  Page {page} of {totalPages}
-                </div>
-                <Button
-                  small
-                  text="Next"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                />
-              </div>
-            </div>
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              totalCount={auditQuery.data.total}
+              onPageChange={setPage}
+            />
           </>
         )}
       </Card>

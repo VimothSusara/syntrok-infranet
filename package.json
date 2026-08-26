@@ -15,7 +15,8 @@
     "db:reset": "powershell -Command \"Remove-Item -Force -ErrorAction SilentlyContinue \\\"$env:APPDATA\\com.syntrok.infranet\\infranet.db\\\", \\\"$env:APPDATA\\com.syntrok.infranet\\infranet.db-wal\\\", \\\"$env:APPDATA\\com.syntrok.infranet\\infranet.db-shm\\\"\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bump-version": "node scripts/bump-version.mjs"
+    "bump-version": "node scripts/bump-version.mjs",
+    "mock:whm": "node scripts/mock-whm-server.mjs"
   },
   "dependencies": {
     "@blueprintjs/core": "^6.18.0",

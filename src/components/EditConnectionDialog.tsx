@@ -14,16 +14,20 @@ import type {
   CredentialSummary,
   SshCredentialKind,
 } from "../domain/credentials";
-import type { CredentialInput } from "../domain/connections";
+import type {
+  CredentialInput,
+  WhmCredentialInput,
+  CpanelCredentialInput,
+} from "../domain/connections";
 
-export interface EditConnectionValue {
-  host: string;
-  port: number;
-  credential: CredentialInput;
-}
+export type EditConnectionValue =
+  | { host: string; port: number; credential: CredentialInput }
+  | { host: string; port: number; credential: WhmCredentialInput }
+  | { host: string; port: number; credential: CpanelCredentialInput };
 
 export function EditConnectionDialog({
   isOpen,
+  kind,
   host: initialHost,
   port: initialPort,
   credentialId: initialCredentialId,
@@ -33,6 +37,7 @@ export function EditConnectionDialog({
   onClose,
 }: {
   isOpen: boolean;
+  kind: "ssh" | "whm" | "cpanel";
   host: string;
   port: number;
   credentialId: string;
@@ -52,10 +57,9 @@ export function EditConnectionDialog({
   const [authKind, setAuthKind] = useState<SshCredentialKind>("ssh_password");
   const [secret, setSecret] = useState("");
   const [passphrase, setPassphrase] = useState("");
+  const [apiToken, setApiToken] = useState("");
   const [attempted, setAttempted] = useState(false);
 
-  // The dialog instance is reused across opens — reset the draft to the
-  // connection's current settings every time it opens.
   useEffect(() => {
     if (isOpen) {
       setHost(initialHost);
@@ -66,9 +70,17 @@ export function EditConnectionDialog({
       setAuthKind("ssh_password");
       setSecret("");
       setPassphrase("");
+      setApiToken("");
       setAttempted(false);
     }
   }, [isOpen, initialHost, initialPort, initialCredentialId]);
+
+  const filteredCredentials = credentials.filter((c) => {
+    if (kind === "ssh")
+      return c.kind !== "whm_api_token" && c.kind !== "cpanel_api_token";
+    if (kind === "whm") return c.kind === "whm_api_token";
+    return c.kind === "cpanel_api_token";
+  });
 
   const trimmedHost = host.trim();
   const portNumber = Number(port);
@@ -76,11 +88,14 @@ export function EditConnectionDialog({
     Number.isInteger(portNumber) && portNumber >= 1 && portNumber <= 65535;
   const trimmedUsername = username.trim();
   const trimmedSecret = secret.trim();
+  const trimmedApiToken = apiToken.trim();
 
   const isCredentialValid =
     credentialMode === "existing"
       ? !!selectedCredentialId
-      : trimmedUsername.length > 0 && trimmedSecret.length > 0;
+      : kind === "ssh"
+        ? trimmedUsername.length > 0 && trimmedSecret.length > 0
+        : trimmedUsername.length > 0 && trimmedApiToken.length > 0;
 
   const isFormValid =
     trimmedHost.length > 0 && isPortValid && isCredentialValid;
@@ -97,6 +112,19 @@ export function EditConnectionDialog({
     setAttempted(true);
     if (!isFormValid) return;
 
+    if (kind !== "ssh") {
+      const credential: WhmCredentialInput | CpanelCredentialInput =
+        credentialMode === "existing"
+          ? { mode: "existing", credentialId: selectedCredentialId }
+          : {
+              mode: "new",
+              username: trimmedUsername,
+              apiToken: trimmedApiToken,
+            };
+      onConfirm({ host: trimmedHost, port: portNumber, credential });
+      return;
+    }
+
     const credential: CredentialInput =
       credentialMode === "existing"
         ? { mode: "existing", credentialId: selectedCredentialId }
@@ -107,7 +135,6 @@ export function EditConnectionDialog({
             secret: trimmedSecret,
             passphrase: authKind === "ssh_private_key" ? passphrase : undefined,
           };
-
     onConfirm({ host: trimmedHost, port: portNumber, credential });
   }
 
@@ -171,12 +198,54 @@ export function EditConnectionDialog({
                 fill
                 value={selectedCredentialId}
                 onChange={(e) => setSelectedCredentialId(e.currentTarget.value)}
-                options={credentials.map((c) => ({
+                options={filteredCredentials.map((c) => ({
                   label: `${c.label} (${c.kind})`,
                   value: c.id,
                 }))}
               />
             </FormGroup>
+          ) : kind !== "ssh" ? (
+            <>
+              <FormGroup
+                label="Username"
+                intent={
+                  attempted && !trimmedUsername ? Intent.DANGER : Intent.NONE
+                }
+                helperText={
+                  attempted && !trimmedUsername
+                    ? "Username is required."
+                    : undefined
+                }
+              >
+                <InputGroup
+                  value={username}
+                  intent={
+                    attempted && !trimmedUsername ? Intent.DANGER : Intent.NONE
+                  }
+                  onChange={(e) => setUsername(e.currentTarget.value)}
+                />
+              </FormGroup>
+              <FormGroup
+                label="API token"
+                intent={
+                  attempted && !trimmedApiToken ? Intent.DANGER : Intent.NONE
+                }
+                helperText={
+                  attempted && !trimmedApiToken
+                    ? "API token is required."
+                    : undefined
+                }
+              >
+                <InputGroup
+                  type="password"
+                  value={apiToken}
+                  intent={
+                    attempted && !trimmedApiToken ? Intent.DANGER : Intent.NONE
+                  }
+                  onChange={(e) => setApiToken(e.currentTarget.value)}
+                />
+              </FormGroup>
+            </>
           ) : (
             <>
               <FormGroup
