@@ -1,1 +1,12 @@
 src-tauri/migrations/*.sql text eol=lf
+
+# 0001 and 0002 already shipped with CRLF embedded in real installed apps'
+# recorded migration checksums (confirmed against a real database) — a
+# fresh checkout normalizing them to LF (the general rule above) would
+# silently change their bytes on every future CI build and break every
+# already-installed copy of the app, exactly like the incident this file
+# was originally added to prevent. These two are pinned to the encoding
+# they already shipped with, forever; only future NEW migration files
+# should use the general eol=lf rule above.
+src-tauri/migrations/0001_initial.sql text eol=crlf
+src-tauri/migrations/0002_host_key_pinning.sql text eol=crlf
