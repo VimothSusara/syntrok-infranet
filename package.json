@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "bump-version": "node scripts/bump-version.mjs",
+    "verify-migrations": "node scripts/verify-migrations.mjs",
     "mock:whm": "node scripts/mock-whm-server.mjs"
   },
   "dependencies": {

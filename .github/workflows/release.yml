@@ -51,6 +51,24 @@ jobs:
 
       - run: pnpm install
 
+      - name: Verify migration files haven't drifted since they last shipped
+        run: pnpm verify-migrations
+
+      - name: Force a clean rebuild of the app crate
+        # The Swatinem/rust-cache above restores target/ from a previous
+        # run. include_str! embeds each migration's file content into the
+        # compiled binary at build time — if the incremental build cache
+        # ever reuses a stale compiled object for this crate, the binary
+        # can ship with OLD migration bytes even though the checked-out
+        # source is current, and sqlx then rejects every already-installed
+        # copy of the app with "migration was previously applied but has
+        # been modified" (this broke a real release). Cleaning just this
+        # package (not its dependencies) forces lib.rs to always recompile
+        # fresh from the just-checked-out source, while keeping the cache's
+        # benefit for every third-party dependency crate.
+        working-directory: ./src-tauri
+        run: cargo clean -p tauri-app
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

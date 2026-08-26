@@ -19,10 +19,12 @@ import { CpanelMailboxCreatePage } from "./routes/CpanelMailboxCreate";
 import { CpanelDomainsPage } from "./routes/CpanelDomains";
 import { AuditLogPage } from "./routes/AuditLog";
 import { SettingsPage } from "./routes/Settings";
+import { RouteErrorBoundary, NotFoundPage } from "./components/RouteErrorBoundary";
 
 export const router = createHashRouter([
   {
     element: <AppLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { path: "/", element: <DashboardPage /> },
       { path: "/projects", element: <ProjectsListPage /> },
@@ -221,6 +223,7 @@ export const router = createHashRouter([
       { path: "/audit", element: <AuditLogPage /> },
       { path: "/settings", element: <SettingsPage /> },
       // { path: "/debug-whm", element: <DebugWhmPage /> },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ]);

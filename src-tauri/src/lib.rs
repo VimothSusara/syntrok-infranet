@@ -1,4 +1,5 @@
 mod cpanel;
+mod db_repair;
 mod keychain;
 mod ssh;
 mod whm;
@@ -52,6 +53,7 @@ pub fn run() {
             ssh::ssh_discover,
             whm::whm_call,
             cpanel::cpanel_call,
+            db_repair::repair_migration_checksums,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
