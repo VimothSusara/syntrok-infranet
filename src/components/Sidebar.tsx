@@ -1,6 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "@blueprintjs/core";
 import type { IconName } from "@blueprintjs/icons";
+import { ensureDefaultWorkspace } from "../domain/workspaces";
+import { queryKeys } from "../domain/queryKeys";
+import { useQuery } from "@tanstack/react-query";
 
 const NAV_ITEMS: {
   to: string;
@@ -32,12 +35,17 @@ const NAV_ITEMS: {
 export function Sidebar() {
   const location = useLocation();
 
+  const { data: workspace } = useQuery({
+    queryKey: queryKeys.workspace(),
+    queryFn: ensureDefaultWorkspace,
+  });
+
   return (
     <div
       style={{
         width: 220,
         flexShrink: 0,
-        borderRight: "1px solid rgba(255,255,255,0.1)",
+        borderRight: "1px solid var(--bp-surface-border-color-default)",
         padding: "16px 8px",
         display: "flex",
         flexDirection: "column",
@@ -45,7 +53,7 @@ export function Sidebar() {
       }}
     >
       <div style={{ padding: "0 8px 16px", fontSize: 14, fontWeight: 600 }}>
-        Syntrok Ops
+        {workspace?.name ?? "Workspace"}
       </div>
       {NAV_ITEMS.map((item) => {
         const active = item.match(location.pathname);
@@ -62,7 +70,7 @@ export function Sidebar() {
               fontSize: 13,
               textDecoration: "none",
               background: active ? "rgba(45,114,210,0.2)" : "transparent",
-              color: active ? "#8abbff" : "inherit",
+              color: active ? "var(--app-text-accent)" : "inherit",
             }}
           >
             <Icon icon={item.icon} size={16} />

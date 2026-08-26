@@ -37,6 +37,7 @@ import { queryKeys } from "../domain/queryKeys";
 import { MetricCard } from "../components/MetricCard";
 import { formatBytes, formatUptime, usageIntent } from "../lib/format";
 import { getSystemMetrics } from "../domain/systemMetrics";
+import { PageHeader } from "../components/PageHeader";
 
 export function ConnectionDetailPage() {
   const { connectionId = "" } = useParams<{ connectionId: string }>();
@@ -148,40 +149,32 @@ export function ConnectionDetailPage() {
 
   return (
     <div>
-      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 10 }}>
-        <Link to="/projects">Projects</Link> /{" "}
-        <Link to={`/projects/${connection.projectId}`}>
-          {connection.projectName}
-        </Link>{" "}
-        /{" "}
-        <Link
-          to={`/projects/${connection.projectId}/environments/${connection.environmentId}`}
-        >
-          {connection.environmentName}
-        </Link>{" "}
-        / {connection.host}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <H2>{connection.host}</H2>
-        <Button
-          small
-          minimal
-          intent={Intent.DANGER}
-          text="Remove connection"
-          onClick={() => setConfirmRemoveOpen(true)}
-        />
-      </div>
-      <div style={{ opacity: 0.7, fontSize: 13, marginBottom: 6 }}>
-        {connection.host}:{connection.port} &middot; {connection.credentialKind}{" "}
-        &middot; {connection.credentialUsername}
-      </div>
+      <PageHeader
+        breadcrumbs={[
+          { text: "Projects", to: "/projects" },
+          {
+            text: connection.projectName,
+            to: `/projects/${connection.projectId}`,
+          },
+          {
+            text: connection.environmentName,
+            to: `/projects/${connection.projectId}/environments/${connection.environmentId}`,
+          },
+          { text: connection.host },
+        ]}
+        title={connection.host}
+        subtitle={`${connection.host}:${connection.port} · ${connection.credentialKind} · ${connection.credentialUsername}`}
+        actions={
+          <Button
+            small
+            minimal
+            intent={Intent.DANGER}
+            text="Remove connection"
+            onClick={() => setConfirmRemoveOpen(true)}
+          />
+        }
+      />
+      
       <Tag
         intent={connection.last_verified_at ? Intent.SUCCESS : Intent.WARNING}
         minimal
@@ -414,7 +407,8 @@ export function ConnectionDetailPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 padding: "9px 0",
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
+                borderBottom:
+                  "1px solid var(--bp-surface-border-color-default)",
               }}
             >
               <div style={{ fontSize: 12 }}>

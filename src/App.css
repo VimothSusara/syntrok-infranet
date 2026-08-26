@@ -8,15 +8,22 @@ body,
 
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+
+  --app-text-success: var(--bp-intent-success-rest);
+  --app-text-warning: var(--bp-intent-warning-rest);
+  --app-text-danger: var(--bp-intent-danger-rest);
+  --app-text-accent: var(--bp-intent-primary-rest);
+}
+
+.bp6-dark {
+  --app-text-success: #3dcc91;
+  --app-text-warning: #f0b775;
+  --app-text-danger: #ff9d92;
+  --app-text-accent: #8abbff;
 }
 
 .app-shell {
   height: 100vh;
-}
-
-.app-shell.bp5-dark {
-  background-color: #111418;
-  color: #f6f7f9;
 }
 
 .app-columns {
@@ -32,4 +39,27 @@ body,
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bp-surface-border-color-strong) transparent;
+}
+
+.scroll-area::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  background-color: var(--bp-surface-border-color-strong);
+  border-radius: 4px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb:hover {
+  background-color: var(--bp-intent-default-rest);
 }

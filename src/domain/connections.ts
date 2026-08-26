@@ -20,15 +20,20 @@ export async function listConnections(environmentId: string): Promise<Connection
     );
 }
 
+type CredentialInput =
+    | { mode: "new"; authKind: SshCredentialKind; username: string; secret: string }
+    | { mode: "existing"; credentialId: string };
+
 export async function addSshConnection(
     environmentId: string,
     host: string,
     port: number,
-    username: string,
-    authKind: SshCredentialKind,
-    secret: string,
+    credential: CredentialInput,
 ): Promise<string> {
-    const credentialId = await createSshCredential(authKind, `${username}@${host}`, username, secret);
+    const credentialId =
+        credential.mode === "new"
+            ? await createSshCredential(credential.authKind, `${credential.username}@${host}`, credential.username, credential.secret)
+            : credential.credentialId;
 
     const db = await getDb();
     const id = crypto.randomUUID();
