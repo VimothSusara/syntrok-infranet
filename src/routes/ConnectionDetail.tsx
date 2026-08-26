@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
-  H2,
   H5,
   Tag,
   Intent,
@@ -174,7 +173,7 @@ export function ConnectionDetailPage() {
           />
         }
       />
-      
+
       <Tag
         intent={connection.last_verified_at ? Intent.SUCCESS : Intent.WARNING}
         minimal

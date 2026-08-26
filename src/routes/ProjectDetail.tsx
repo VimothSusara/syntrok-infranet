@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, H2, H5, Icon, Spinner, NonIdealState } from "@blueprintjs/core";
+import { Card, H5, Icon, Spinner, NonIdealState } from "@blueprintjs/core";
 import { getProjectById } from "../domain/projects";
 import { listEnvironments, createEnvironment } from "../domain/environments";
 import { InlineAddForm } from "../components/InlineAddForm";

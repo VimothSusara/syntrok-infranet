@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { Card, H2, H4, Icon } from "@blueprintjs/core";
+import { Card, H4, Icon } from "@blueprintjs/core";
 import { listProjects, createProject } from "../domain/projects";
 import { InlineAddForm } from "../components/InlineAddForm";
 // import { showError } from "../lib/toaster";

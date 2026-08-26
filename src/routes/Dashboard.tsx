@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   Card,
-  H2,
   H5,
   Spinner,
   NonIdealState,
