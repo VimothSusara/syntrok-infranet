@@ -2,18 +2,22 @@ import { invoke } from '@tauri-apps/api/core';
 import { getDb } from '../lib/db';
 import { getCredentialSecret } from './credentials';
 import { recordAudit } from './audit';
+import { persistHostFingerprint } from './connections';
 import type { Connection } from './types';
 
 interface ExecResult {
     stdout: string;
     stderr: string;
     exit_status: number;
+    host_fingerprint: string;
 }
 
 interface DiscoveryResult {
     systemd: boolean;
     docker: boolean;
     podman: boolean;
+    passwordlessSudo: boolean;
+    hostFingerprint: string;
 }
 
 export async function withCredentials(connection: Connection) {
@@ -33,6 +37,7 @@ export async function withCredentials(connection: Connection) {
         username: credential.username,
         credentialKind: credential.kind,
         secret,
+        knownHostFingerprint: connection.known_host_fingerprint,
     };
 }
 
@@ -40,6 +45,7 @@ export async function testConnection(connection: Connection, resourceId: string)
     const creds = await withCredentials(connection);
     try {
         const discovery = await invoke<DiscoveryResult>("ssh_discover", creds);
+        await persistHostFingerprint(connection.id, discovery.hostFingerprint);
 
         const db = await getDb();
         await db.execute(
@@ -60,6 +66,7 @@ export async function listServices(connection: Connection): Promise<string[]> {
     const creds = await withCredentials(connection);
     const command = "systemctl list-units --type=service --state=running --no-legend --no-pager";
     const result = await invoke<ExecResult>("ssh_exec", { ...creds, command });
+    await persistHostFingerprint(connection.id, result.host_fingerprint);
     return result.stdout
         .split("\n")
         .map((line) => line.trim().split(/\s+/)[0])
@@ -81,6 +88,7 @@ export async function restartService(connection: Connection, resourceId: string,
     let result: ExecResult;
     try {
         result = await invoke<ExecResult>("ssh_exec", { ...creds, command });
+        await persistHostFingerprint(connection.id, result.host_fingerprint);
     } catch (err) {
         await recordAudit({ connectionId: connection.id, resourceId, action: "service.restart", detail: `${serviceName}: ${String(err)}`, result: "failure" });
         throw err;

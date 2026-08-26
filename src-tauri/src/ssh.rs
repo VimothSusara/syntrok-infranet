@@ -3,10 +3,14 @@ use russh::client::{self, Msg};
 use russh::keys::decode_secret_key;
 use russh::keys::key::PublicKey;
 use russh::{Channel, ChannelMsg};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-struct ClientHandler;
+struct ClientHandler {
+    expected_fingerprint: Option<String>,
+    observed_fingerprint: Arc<Mutex<Option<String>>>,
+    mismatch: Arc<Mutex<bool>>,
+}
 
 #[async_trait]
 impl client::Handler for ClientHandler {
@@ -14,12 +18,21 @@ impl client::Handler for ClientHandler {
 
     async fn check_server_key(
         &mut self,
-        _server_public_key: &PublicKey,
+        server_public_key: &PublicKey,
     ) -> Result<bool, Self::Error> {
-        // V1: accept-on-first-connect. See the host-key pinning note in the
-        // architecture plan before this is used against anything but your own
-        // test servers.
-        Ok(true)
+        let fingerprint = server_public_key.fingerprint();
+        *self.observed_fingerprint.lock().unwrap() = Some(fingerprint.clone());
+
+        match &self.expected_fingerprint {
+            // First time we've ever connected to this saved connection — trust
+            // and pin. Any later mismatch against this pinned value is rejected.
+            None => Ok(true),
+            Some(expected) if expected == &fingerprint => Ok(true),
+            Some(_) => {
+                *self.mismatch.lock().unwrap() = true;
+                Ok(false)
+            }
+        }
     }
 }
 
@@ -28,6 +41,14 @@ pub struct ExecResult {
     pub stdout: String,
     pub stderr: String,
     pub exit_status: u32,
+    pub host_fingerprint: String,
+}
+
+#[derive(serde::Deserialize)]
+struct PrivateKeySecret {
+    key: String,
+    #[serde(default)]
+    passphrase: String,
 }
 
 async fn open_session(
@@ -36,21 +57,59 @@ async fn open_session(
     username: &str,
     auth_kind: &str,
     secret: &str,
-) -> Result<client::Handle<ClientHandler>, String> {
+    known_host_fingerprint: Option<String>,
+) -> Result<(client::Handle<ClientHandler>, String), String> {
     let config = Arc::new(client::Config::default());
+
+    let observed_fingerprint = Arc::new(Mutex::new(None));
+    let mismatch = Arc::new(Mutex::new(false));
+    let handler = ClientHandler {
+        expected_fingerprint: known_host_fingerprint,
+        observed_fingerprint: observed_fingerprint.clone(),
+        mismatch: mismatch.clone(),
+    };
 
     let connect_result = tokio::time::timeout(
         Duration::from_secs(10),
-        client::connect(config, (host, port), ClientHandler),
+        client::connect(config, (host, port), handler),
     )
     .await
     .map_err(|_| format!("Timed out connecting to {host}:{port}"))?;
 
-    let mut session = connect_result.map_err(|e| e.to_string())?;
+    let mut session = connect_result.map_err(|e| {
+        if *mismatch.lock().unwrap() {
+            "Host key does not match the key saved for this connection. The \
+             server may have been reinstalled or rekeyed, or this could be a \
+             man-in-the-middle attempt — verify the new key out-of-band before \
+             trusting it again."
+                .to_string()
+        } else {
+            e.to_string()
+        }
+    })?;
+
+    let fingerprint = observed_fingerprint.lock().unwrap().clone().unwrap_or_default();
 
     let authenticated = match auth_kind {
         "ssh_private_key" => {
-            let key_pair = decode_secret_key(secret, None)
+            // New credentials store {"key": "...", "passphrase": "..."} as JSON.
+            // Credentials created before passphrase support stored the raw key
+            // string directly — fall back to treating the whole secret as an
+            // unencrypted key so existing connections keep working unchanged.
+            let (key_content, passphrase) = match serde_json::from_str::<PrivateKeySecret>(secret)
+            {
+                Ok(parsed) => {
+                    let pass = if parsed.passphrase.is_empty() {
+                        None
+                    } else {
+                        Some(parsed.passphrase)
+                    };
+                    (parsed.key, pass)
+                }
+                Err(_) => (secret.to_string(), None),
+            };
+
+            let key_pair = decode_secret_key(&key_content, passphrase.as_deref())
                 .map_err(|e| format!("Could not read private key: {e}"))?;
             session
                 .authenticate_publickey(username, Arc::new(key_pair))
@@ -67,7 +126,7 @@ async fn open_session(
         return Err("Authentication failed".into());
     }
 
-    Ok(session)
+    Ok((session, fingerprint))
 }
 
 async fn run_command(channel: &mut Channel<Msg>, command: &str) -> Result<ExecResult, String> {
@@ -93,6 +152,7 @@ async fn run_command(channel: &mut Channel<Msg>, command: &str) -> Result<ExecRe
         stdout: String::from_utf8_lossy(&stdout).to_string(),
         stderr: String::from_utf8_lossy(&stderr).to_string(),
         exit_status,
+        host_fingerprint: String::new(),
     })
 }
 
@@ -103,14 +163,27 @@ pub async fn ssh_exec(
     username: String,
     credential_kind: String,
     secret: String,
+    known_host_fingerprint: Option<String>,
     command: String,
 ) -> Result<ExecResult, String> {
-    let session = open_session(&host, port, &username, &credential_kind, &secret).await?;
+    let (session, fingerprint) = open_session(
+        &host,
+        port,
+        &username,
+        &credential_kind,
+        &secret,
+        known_host_fingerprint,
+    )
+    .await?;
     let mut channel = session
         .channel_open_session()
         .await
         .map_err(|e| e.to_string())?;
-    run_command(&mut channel, &command).await
+    let result = run_command(&mut channel, &command).await?;
+    Ok(ExecResult {
+        host_fingerprint: fingerprint,
+        ..result
+    })
 }
 
 #[derive(serde::Serialize)]
@@ -120,6 +193,7 @@ pub struct DiscoveryResult {
     pub docker: bool,
     pub podman: bool,
     pub passwordless_sudo: bool,
+    pub host_fingerprint: String,
 }
 
 #[tauri::command]
@@ -129,8 +203,17 @@ pub async fn ssh_discover(
     username: String,
     credential_kind: String,
     secret: String,
+    known_host_fingerprint: Option<String>,
 ) -> Result<DiscoveryResult, String> {
-    let session = open_session(&host, port, &username, &credential_kind, &secret).await?;
+    let (session, fingerprint) = open_session(
+        &host,
+        port,
+        &username,
+        &credential_kind,
+        &secret,
+        known_host_fingerprint,
+    )
+    .await?;
 
     let check = |name: &'static str| {
         let command = format!("command -v {name} >/dev/null 2>&1 && echo yes || echo no");
@@ -162,5 +245,6 @@ pub async fn ssh_discover(
         docker: *results.get("docker").unwrap_or(&false),
         podman: *results.get("podman").unwrap_or(&false),
         passwordless_sudo: *results.get("passwordless_sudo").unwrap_or(&false),
+        host_fingerprint: fingerprint,
     })
 }

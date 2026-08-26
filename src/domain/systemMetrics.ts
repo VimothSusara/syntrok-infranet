@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
+import { persistHostFingerprint } from "./connections";
 
 interface ExecResult {
     stdout: string;
     stderr: string;
     exit_status: number;
+    host_fingerprint: string;
 }
 
 export interface SystemMetrics {
@@ -79,9 +81,11 @@ export function parseUptime(section: string): number {
 }
 
 export async function getSystemMetrics(
-    creds: { host: string; port: number; username: string; credentialKind: string; secret: string },
+    connectionId: string,
+    creds: { host: string; port: number; username: string; credentialKind: string; secret: string; knownHostFingerprint: string | null },
 ): Promise<SystemMetrics> {
     const result = await invoke<ExecResult>("ssh_exec", { ...creds, command: METRICS_COMMAND });
+    await persistHostFingerprint(connectionId, result.host_fingerprint);
     const sections = splitSections(result.stdout);
 
     return {

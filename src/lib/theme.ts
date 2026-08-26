@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Classes } from "@blueprintjs/core";
 import { getStore } from "./store";
 import { queryKeys } from "../domain/queryKeys";
 
@@ -43,6 +44,15 @@ export function useThemePreference(): [ThemePreference, (pref: ThemePreference) 
 export function useEffectiveDarkMode(): boolean {
     const systemDark = useSystemDarkMode();
     const [preference] = useThemePreference();
-    if (preference === "system") return systemDark;
-    return preference === "dark";
+    const isDark = preference === "system" ? systemDark : preference === "dark";
+
+    // Dialog/Alert/Toaster render through a Portal straight into document.body,
+    // outside the app-shell div where the dark class is normally applied — sync
+    // it onto body too so every portaled overlay inherits dark mode as well.
+    useEffect(() => {
+        document.body.classList.toggle(Classes.DARK, isDark);
+    }, [isDark]);
+
+    return isDark;
 }
+

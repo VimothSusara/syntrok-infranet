@@ -1,16 +1,42 @@
-import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, H5, Icon, Spinner, NonIdealState } from "@blueprintjs/core";
-import { getProjectById } from "../domain/projects";
-import { listEnvironments, createEnvironment } from "../domain/environments";
+import {
+  Card,
+  H5,
+  Icon,
+  Spinner,
+  NonIdealState,
+  Button,
+  Alert,
+  Intent,
+} from "@blueprintjs/core";
+import { getProjectById, listProjects } from "../domain/projects";
+import {
+  listEnvironments,
+  createEnvironment,
+  renameEnvironment,
+  deleteEnvironment,
+  getEnvironmentDeleteImpact,
+} from "../domain/environments";
 import { InlineAddForm } from "../components/InlineAddForm";
+import { EditNameDialog } from "../components/EditNameDialog";
+import { SiblingNav } from "../components/SiblingNav";
 import { queryKeys } from "../domain/queryKeys";
-import { showError } from "../lib/toaster";
+import { showError, showSuccess } from "../lib/toaster";
+import { describeError } from "../lib/errors";
 import { PageHeader } from "../components/PageHeader";
+import type { Environment } from "../domain/types";
+import type { LayoutContext } from "../layouts/AppLayout";
 
 export function ProjectDetailPage() {
   const { projectId = "" } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { workspaceId } = useOutletContext<LayoutContext>();
+
+  const [envToDelete, setEnvToDelete] = useState<Environment | null>(null);
+  const [envToEdit, setEnvToEdit] = useState<Environment | null>(null);
 
   const projectQuery = useQuery({
     queryKey: queryKeys.project(projectId),
@@ -24,16 +50,53 @@ export function ProjectDetailPage() {
     enabled: !!projectId,
   });
 
+  const impactQuery = useQuery({
+    queryKey: ["environmentDeleteImpact", envToDelete?.id],
+    queryFn: () => getEnvironmentDeleteImpact(envToDelete!.id),
+    enabled: !!envToDelete,
+  });
+
+  const siblingProjectsQuery = useQuery({
+    queryKey: queryKeys.projects(workspaceId),
+    queryFn: () => listProjects(workspaceId),
+    enabled: !!workspaceId,
+  });
+
   const createMutation = useMutation({
     mutationFn: (name: string) => createEnvironment(projectId, name),
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.environments(projectId),
       }),
-    onError: (err) => {
-      console.error(`Failed to add environment: ${String(err)}`);
-      showError(`Failed to add environment: ${String(err)}`);
+    onError: (err) =>
+      showError(`Failed to add environment: ${describeError(err)}`),
+  });
+
+  const renameMutation = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      renameEnvironment(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.environments(projectId),
+      });
+      setEnvToEdit(null);
     },
+    onError: (err) =>
+      showError(`Failed to rename environment: ${describeError(err)}`),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteEnvironment(id),
+    onSuccess: () => {
+      showSuccess("Environment deleted");
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.environments(projectId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credentials() });
+    },
+    onError: (err) =>
+      showError(`Failed to delete environment: ${describeError(err)}`),
+    onSettled: () => setEnvToDelete(null),
   });
 
   return (
@@ -44,6 +107,14 @@ export function ProjectDetailPage() {
           { text: projectQuery.data?.name ?? "…" },
         ]}
         title={projectQuery.data?.name ?? "…"}
+        actions={
+          <SiblingNav
+            items={siblingProjectsQuery.data ?? []}
+            currentId={projectId}
+            getPath={(p) => `/projects/${p.id}`}
+            getLabel={(p) => p.name}
+          />
+        }
       />
 
       <H5 style={{ marginTop: 24 }}>Environments</H5>
@@ -58,21 +129,43 @@ export function ProjectDetailPage() {
       {environmentsQuery.data && environmentsQuery.data.length > 0 && (
         <Card style={{ marginBottom: 16, padding: "4px 16px" }}>
           {environmentsQuery.data.map((env) => (
-            <Link
+            <div
               key={env.id}
-              to={`/projects/${projectId}/environments/${env.id}`}
+              onClick={() =>
+                navigate(`/projects/${projectId}/environments/${env.id}`)
+              }
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "14px 4px",
-                textDecoration: "none",
-                color: "inherit",
+                cursor: "pointer",
               }}
             >
               <div style={{ fontWeight: 600, fontSize: 14 }}>{env.name}</div>
-              <Icon icon="chevron-right" />
-            </Link>
+              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Button
+                  icon="edit"
+                  minimal
+                  small
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEnvToEdit(env);
+                  }}
+                />
+                <Button
+                  icon="trash"
+                  minimal
+                  small
+                  intent={Intent.DANGER}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEnvToDelete(env);
+                  }}
+                />
+                <Icon icon="chevron-right" />
+              </div>
+            </div>
           ))}
         </Card>
       )}
@@ -81,6 +174,37 @@ export function ProjectDetailPage() {
         placeholder="e.g. production"
         onSubmit={(name) => createMutation.mutate(name)}
       />
+
+      <EditNameDialog
+        isOpen={envToEdit !== null}
+        title="Rename environment"
+        label="Environment name"
+        initialValue={envToEdit?.name ?? ""}
+        loading={renameMutation.isPending}
+        onConfirm={(name) =>
+          envToEdit && renameMutation.mutate({ id: envToEdit.id, name })
+        }
+        onClose={() => setEnvToEdit(null)}
+      />
+
+      <Alert
+        isOpen={envToDelete !== null}
+        icon="trash"
+        intent={Intent.DANGER}
+        confirmButtonText="Delete environment"
+        cancelButtonText="Cancel"
+        loading={deleteMutation.isPending}
+        onConfirm={() => envToDelete && deleteMutation.mutate(envToDelete.id)}
+        onCancel={() => setEnvToDelete(null)}
+        canOutsideClickCancel
+      >
+        <p>
+          Delete <strong>{envToDelete?.name}</strong>?
+          {impactQuery.data
+            ? ` This removes ${impactQuery.data.connections} server(s), along with their stored credentials. Audit history is kept.`
+            : " Calculating impact…"}
+        </p>
+      </Alert>
     </div>
   );
 }

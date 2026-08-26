@@ -14,6 +14,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { getVersion } from "@tauri-apps/api/app";
 import { formatBytes } from "../lib/format";
 import { showSuccess, showError } from "../lib/toaster";
+import { describeError } from "../lib/errors";
 import { useThemePreference } from "../lib/theme";
 import { APP_NAME } from "../lib/constants";
 import { PageHeader } from "../components/PageHeader";
@@ -66,7 +67,7 @@ export function SettingsPage() {
     },
     onError: (err) => {
       setProgress(null);
-      showError(`Update check failed: ${String(err)}`);
+      showError(`Update check failed: ${describeError(err)}`);
     },
   });
 

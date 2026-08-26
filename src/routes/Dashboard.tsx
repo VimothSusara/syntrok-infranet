@@ -21,6 +21,8 @@ import { queryKeys } from "../domain/queryKeys";
 import type { LayoutContext } from "../layouts/AppLayout";
 import type { Connection } from "../domain/types";
 import { showError, showSuccess } from "../lib/toaster";
+import { describeError } from "../lib/errors";
+import { invalidateConnectionState } from "../lib/queryInvalidation";
 import { PageHeader } from "../components/PageHeader";
 
 export function DashboardPage() {
@@ -51,19 +53,15 @@ export function DashboardPage() {
     },
     onSuccess: (_discovery, connection) => {
       showSuccess(`Verified ${connection.host}`);
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.unverifiedConnections(workspaceId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.dashboardStats(workspaceId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recentAuditEvents(workspaceId),
+      invalidateConnectionState(queryClient, {
+        connectionId: connection.id,
+        environmentId: connection.environment_id,
+        workspaceId,
       });
     },
     onError: (err) => {
       console.error("Test failed:", err);
-      showError(`Test failed: ${String(err)}`);
+      showError(`Test failed: ${describeError(err)}`);
     },
   });
 

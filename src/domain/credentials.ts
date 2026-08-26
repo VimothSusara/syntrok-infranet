@@ -15,10 +15,14 @@ export async function createSshCredential(
     label: string,
     username: string,
     secret: string,
+    passphrase?: string,
 ): Promise<string> {
     const id = crypto.randomUUID();
 
-    await invoke("keychain_set", { credentialId: id, secret });
+    const storedSecret =
+        kind === "ssh_private_key" ? JSON.stringify({ key: secret, passphrase: passphrase ?? "" }) : secret;
+
+    await invoke("keychain_set", { credentialId: id, secret: storedSecret });
 
     const db = await getDb();
     try {

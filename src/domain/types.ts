@@ -32,6 +32,7 @@ export interface Connection {
     port: number;
     credential_id: string;
     last_verified_at: string | null;
+    known_host_fingerprint: string | null;
 }
 
 export interface Resource {

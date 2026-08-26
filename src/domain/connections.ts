@@ -1,5 +1,6 @@
 import { getDb } from '../lib/db';
 import { createSshCredential, type SshCredentialKind } from "./credentials";
+import { recordAudit } from "./audit";
 import type { Connection } from './types';
 import { invoke } from "@tauri-apps/api/core";
 
@@ -20,8 +21,8 @@ export async function listConnections(environmentId: string): Promise<Connection
     );
 }
 
-type CredentialInput =
-    | { mode: "new"; authKind: SshCredentialKind; username: string; secret: string }
+export type CredentialInput =
+    | { mode: "new"; authKind: SshCredentialKind; username: string; secret: string; passphrase?: string }
     | { mode: "existing"; credentialId: string };
 
 export async function addSshConnection(
@@ -32,7 +33,13 @@ export async function addSshConnection(
 ): Promise<string> {
     const credentialId =
         credential.mode === "new"
-            ? await createSshCredential(credential.authKind, `${credential.username}@${host}`, credential.username, credential.secret)
+            ? await createSshCredential(
+                credential.authKind,
+                `${credential.username}@${host}`,
+                credential.username,
+                credential.secret,
+                credential.passphrase,
+            )
             : credential.credentialId;
 
     const db = await getDb();
@@ -47,6 +54,27 @@ export async function addSshConnection(
     );
 
     return id;
+}
+
+// Called after any successful SSH operation with the fingerprint the server
+// presented. Safe to call unconditionally: if nothing is pinned yet this pins
+// it; if something is already pinned, Rust would have already rejected the
+// connection on a mismatch, so this only ever re-writes the same value.
+export async function persistHostFingerprint(connectionId: string, fingerprint: string): Promise<void> {
+    if (!fingerprint) return;
+    const db = await getDb();
+    await db.execute(
+        "UPDATE connection SET known_host_fingerprint = $1 WHERE id = $2 AND (known_host_fingerprint IS NULL OR known_host_fingerprint = $1)",
+        [fingerprint, connectionId],
+    );
+}
+
+export async function clearHostFingerprint(connectionId: string): Promise<void> {
+    const db = await getDb();
+    await db.execute(
+        "UPDATE connection SET known_host_fingerprint = NULL WHERE id = $1",
+        [connectionId],
+    );
 }
 
 export async function getResourceForConnection(connectionId: string) {
@@ -78,6 +106,24 @@ export async function getConnectionById(connectionId: string): Promise<Connectio
     return rows[0] ?? null;
 }
 
+// Deletes a credential only if no connection references it anymore. Safe to
+// call after any delete that might have just cascaded away that credential's
+// last remaining connection (a direct connection delete, or a project/
+// environment delete that took a bunch of connections down with it).
+export async function cleanupOrphanedCredential(credentialId: string): Promise<void> {
+    const db = await getDb();
+    const [{ count }] = await db.select<{ count: number }[]>(
+        "SELECT COUNT(*) as count FROM connection WHERE credential_id = $1",
+        [credentialId],
+    );
+    if (count === 0) {
+        await db.execute("DELETE FROM credential WHERE id = $1", [credentialId]);
+        // tolerate a keychain entry that's already missing — this is exactly the
+        // desync state you're in right now, deletion should clean up regardless
+        await invoke("keychain_delete", { credentialId }).catch(() => { });
+    }
+}
+
 export async function deleteConnection(connectionId: string): Promise<void> {
     const db = await getDb();
     const rows = await db.select<{ credential_id: string }[]>(
@@ -89,9 +135,67 @@ export async function deleteConnection(connectionId: string): Promise<void> {
     await db.execute("DELETE FROM connection WHERE id = $1", [connectionId]);
 
     if (credentialId) {
-        await db.execute("DELETE FROM credential WHERE id = $1", [credentialId]);
-        // tolerate a keychain entry that's already missing — this is exactly the
-        // desync state you're in right now, deletion should clean up regardless
-        await invoke("keychain_delete", { credentialId }).catch(() => { });
+        await cleanupOrphanedCredential(credentialId);
+    }
+}
+
+export async function updateConnection(
+    connectionId: string,
+    input: { host: string; port: number; credential: CredentialInput },
+): Promise<void> {
+    const db = await getDb();
+
+    const rows = await db.select<{ credential_id: string; host: string; port: number }[]>(
+        "SELECT credential_id, host, port FROM connection WHERE id = $1",
+        [connectionId],
+    );
+    const existing = rows[0];
+    if (!existing) throw new Error("Connection not found");
+
+    const oldCredentialId = existing.credential_id;
+    const hostOrPortChanged = existing.host !== input.host || existing.port !== input.port;
+
+    const newCredentialId =
+        input.credential.mode === "new"
+            ? await createSshCredential(
+                input.credential.authKind,
+                `${input.credential.username}@${input.host}`,
+                input.credential.username,
+                input.credential.secret,
+                input.credential.passphrase,
+            )
+            : input.credential.credentialId;
+
+    const credentialChanged = newCredentialId !== oldCredentialId;
+
+    if (hostOrPortChanged || credentialChanged) {
+        await db.execute(
+            hostOrPortChanged
+                ? "UPDATE connection SET host = $1, port = $2, credential_id = $3, last_verified_at = NULL, known_host_fingerprint = NULL WHERE id = $4"
+                : "UPDATE connection SET host = $1, port = $2, credential_id = $3, last_verified_at = NULL WHERE id = $4",
+            [input.host, input.port, newCredentialId, connectionId],
+        );
+        await db.execute("UPDATE resource SET metadata = NULL WHERE connection_id = $1", [connectionId]);
+
+        const changes: string[] = [];
+        if (hostOrPortChanged) {
+            changes.push(`address changed to ${input.host}:${input.port} (was ${existing.host}:${existing.port})`);
+        }
+        if (credentialChanged) changes.push("credential changed");
+        await recordAudit({
+            connectionId,
+            resourceId: null,
+            action: "connection.update",
+            detail: changes.join("; "),
+            result: "success",
+        });
+    }
+
+    if (hostOrPortChanged) {
+        await db.execute("UPDATE resource SET label = $1 WHERE connection_id = $2", [input.host, connectionId]);
+    }
+
+    if (credentialChanged) {
+        await cleanupOrphanedCredential(oldCredentialId);
     }
 }
