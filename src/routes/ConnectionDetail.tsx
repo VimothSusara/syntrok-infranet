@@ -30,7 +30,7 @@ import {
   describeRestartFailure,
   withCredentials,
 } from "../domain/operations";
-import { listAuditEvents } from "../domain/audit";
+import { RecentActivityCard } from "../components/RecentActivityCard";
 import { parseCapabilities } from "../domain/capabilities";
 import { CapabilityGate } from "../components/CapabilityGate";
 import { showSuccess, showError } from "../lib/toaster";
@@ -75,12 +75,6 @@ export function ConnectionDetailPage() {
   const resourceQuery = useQuery({
     queryKey: queryKeys.resource(connectionId),
     queryFn: () => getResourceForConnection(connectionId),
-    enabled: !!connectionId,
-  });
-
-  const auditQuery = useQuery({
-    queryKey: queryKeys.auditEvents(connectionId),
-    queryFn: () => listAuditEvents(connectionId),
     enabled: !!connectionId,
   });
 
@@ -189,6 +183,14 @@ export function ConnectionDetailPage() {
   if (connectionQuery.isLoading) return <Spinner size={32} />;
   if (!connection)
     return <NonIdealState icon="offline" title="Connection not found" />;
+  if (connection.kind !== "ssh")
+    return (
+      <NonIdealState
+        icon="error"
+        title="Not an SSH connection"
+        description="This connection isn't managed over SSH."
+      />
+    );
 
   function handleConfirmRemove() {
     if (!connection) return;
@@ -500,38 +502,7 @@ export function ConnectionDetailPage() {
           </CapabilityGate>
         </Card>
 
-        <Card>
-          <H5>Recent activity</H5>
-          {auditQuery.isLoading && <Spinner size={20} />}
-          {auditQuery.data?.length === 0 && (
-            <NonIdealState icon="history" title="No activity yet" />
-          )}
-          {auditQuery.data?.map((event) => (
-            <div
-              key={event.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "9px 0",
-                borderBottom:
-                  "1px solid var(--bp-surface-border-color-default)",
-              }}
-            >
-              <div style={{ fontSize: 12 }}>
-                {event.action}
-                {event.detail ? ` — ${event.detail}` : ""}
-              </div>
-              <Tag
-                intent={
-                  event.result === "success" ? Intent.SUCCESS : Intent.DANGER
-                }
-                minimal
-              >
-                {event.result}
-              </Tag>
-            </div>
-          ))}
-        </Card>
+        <RecentActivityCard connectionId={connectionId} />
       </div>
 
       <Alert
@@ -591,12 +562,21 @@ export function ConnectionDetailPage() {
 
       <EditConnectionDialog
         isOpen={editOpen}
+        kind="ssh"
         host={connection.host}
         port={connection.port}
         credentialId={connection.credential_id}
         credentials={credentialsQuery.data ?? []}
         loading={updateMutation.isPending}
-        onConfirm={(value) => updateMutation.mutate(value)}
+        onConfirm={(value) =>
+          updateMutation.mutate(
+            value as {
+              host: string;
+              port: number;
+              credential: Parameters<typeof updateConnection>[1]["credential"];
+            },
+          )
+        }
         onClose={() => setEditOpen(false)}
       />
     </div>

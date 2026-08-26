@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 updater-private-key.pem
+
+scripts/mock-whm-*.pem

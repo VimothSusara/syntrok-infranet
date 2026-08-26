@@ -1,12 +1,15 @@
 import Database from '@tauri-apps/plugin-sql';
 
-let dbInstance: Database | null = null;
+let dbPromise: Promise<Database> | null = null;
 
 export async function getDb(): Promise<Database> {
-    if (!dbInstance) {
-        dbInstance = await Database.load('sqlite:infranet.db');
-        await dbInstance.execute('PRAGMA foreign_keys = ON;');
-        await dbInstance.execute('PRAGMA journal_mode = WAL;');
+    if (!dbPromise) {
+        dbPromise = (async () => {
+            const db = await Database.load('sqlite:infranet.db');
+            await db.execute('PRAGMA foreign_keys = ON;');
+            await db.execute('PRAGMA journal_mode = WAL;');
+            return db;
+        })();
     }
-    return dbInstance;
+    return dbPromise;
 }

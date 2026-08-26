@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext, Link } from "react-router-dom";
 import {
   Card,
   H5,
@@ -24,6 +24,8 @@ import { showError, showSuccess } from "../lib/toaster";
 import { describeError } from "../lib/errors";
 import { invalidateConnectionState } from "../lib/queryInvalidation";
 import { PageHeader } from "../components/PageHeader";
+import { testWhmConnection } from "../domain/whm";
+import { testCpanelConnection } from "../domain/cpanel";
 
 export function DashboardPage() {
   const { workspaceId } = useOutletContext<LayoutContext>();
@@ -49,9 +51,11 @@ export function DashboardPage() {
     mutationFn: async (connection: Connection) => {
       const resource = await getResourceForConnection(connection.id);
       if (!resource) throw new Error("No resource record for this connection");
+      if (connection.kind === "whm") return testWhmConnection(connection, resource.id);
+      if (connection.kind === "cpanel") return testCpanelConnection(connection, resource.id);
       return testConnection(connection, resource.id);
     },
-    onSuccess: (_discovery, connection) => {
+    onSuccess: (_result, connection) => {
       showSuccess(`Verified ${connection.host}`);
       invalidateConnectionState(queryClient, {
         connectionId: connection.id,
@@ -182,9 +186,19 @@ export function DashboardPage() {
           )}
           {unverifiedQuery.data?.map((connection) => (
             <div key={connection.id} style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 13 }}>
+              <Link
+                to={
+                  connection.kind === "whm"
+                    ? `/whm-connections/${connection.id}`
+                    : connection.kind === "cpanel"
+                      ? `/cpanel-connections/${connection.id}`
+                      : `/connections/${connection.id}`
+                }
+                style={{ fontSize: 13, fontWeight: 600, color: "inherit" }}
+              >
                 {connection.host}:{connection.port}
-              </div>
+              </Link>
+
               <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 6 }}>
                 {connection.projectName} / {connection.environmentName} &middot;
                 never verified

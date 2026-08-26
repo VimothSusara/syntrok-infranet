@@ -1,5 +1,7 @@
+mod cpanel;
 mod keychain;
 mod ssh;
+mod whm;
 
 use tauri_plugin_sql::{Migration, MigrationKind};
 
@@ -16,6 +18,18 @@ pub fn run() {
             version: 2,
             description: "host_key_pinning",
             sql: include_str!("../migrations/0002_host_key_pinning.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 3,
+            description: "whm_connector",
+            sql: include_str!("../migrations/0003_whm_connector.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 4,
+            description: "cpanel_connector",
+            sql: include_str!("../migrations/0004_cpanel_connector.sql"),
             kind: MigrationKind::Up,
         },
     ];
@@ -36,6 +50,8 @@ pub fn run() {
             keychain::keychain_delete,
             ssh::ssh_exec,
             ssh::ssh_discover,
+            whm::whm_call,
+            cpanel::cpanel_call,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
