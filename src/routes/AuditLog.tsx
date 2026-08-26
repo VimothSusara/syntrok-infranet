@@ -15,6 +15,7 @@ import {
 } from "@blueprintjs/core";
 import { listAllAuditEvents } from "../domain/audit";
 import { queryKeys } from "../domain/queryKeys";
+import { PageHeader } from "../components/PageHeader";
 
 const PAGE_SIZE = 25;
 
@@ -38,7 +39,7 @@ export function AuditLogPage() {
 
   return (
     <div>
-      <H2>Audit Log</H2>
+      <PageHeader title="Audit Log" />
       <div style={{ display: "flex", gap: 10, margin: "16px 0" }}>
         <InputGroup
           placeholder="Search action, host, project…"

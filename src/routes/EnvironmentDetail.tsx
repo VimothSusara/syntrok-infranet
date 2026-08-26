@@ -15,13 +15,19 @@ import {
   HTMLTable,
   Spinner,
   NonIdealState,
+  HTMLSelect,
 } from "@blueprintjs/core";
-import type { SshCredentialKind } from "../domain/credentials";
+import {
+  CredentialSummary,
+  listCredentials,
+  type SshCredentialKind,
+} from "../domain/credentials";
 import { getProjectById } from "../domain/projects";
 import { getEnvironmentById } from "../domain/environments";
 import { listConnections, addSshConnection } from "../domain/connections";
 import { queryKeys } from "../domain/queryKeys";
 import { showError, showSuccess } from "../lib/toaster";
+import { PageHeader } from "../components/PageHeader";
 
 export function EnvironmentDetailPage() {
   const { projectId = "", environmentId = "" } = useParams<{
@@ -45,45 +51,41 @@ export function EnvironmentDetailPage() {
     queryFn: () => listConnections(environmentId),
     enabled: !!environmentId,
   });
+  const credentialsQuery = useQuery({
+    queryKey: queryKeys.credentials(),
+    queryFn: listCredentials,
+  });
 
   const addServerMutation = useMutation({
     mutationFn: (input: {
       host: string;
       port: number;
-      username: string;
-      authKind: SshCredentialKind;
-      secret: string;
+      credential: Parameters<typeof addSshConnection>[3];
     }) =>
-      addSshConnection(
-        environmentId,
-        input.host,
-        input.port,
-        input.username,
-        input.authKind,
-        input.secret,
-      ),
+      addSshConnection(environmentId, input.host, input.port, input.credential),
     onSuccess: () => {
       showSuccess("Server added");
       queryClient.invalidateQueries({
         queryKey: queryKeys.connections(environmentId),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credentials() });
     },
-    onError: (err) => {
-      console.error(`Failed to add server: ${String(err)}`);
-      showError(`Failed to add server: ${String(err)}`);
-    },
+    onError: (err) => showError(`Failed to add server: ${String(err)}`),
   });
 
   return (
     <div>
-      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 10 }}>
-        <Link to="/projects">Projects</Link> /{" "}
-        <Link to={`/projects/${projectId}`}>
-          {projectQuery.data?.name ?? "…"}
-        </Link>{" "}
-        / {environmentQuery.data?.name ?? "…"}
-      </div>
-      <H2>{environmentQuery.data?.name ?? "Environment"}</H2>
+      <PageHeader
+        breadcrumbs={[
+          { text: "Projects", to: "/projects" },
+          {
+            text: projectQuery.data?.name ?? "…",
+            to: `/projects/${projectId}`,
+          },
+          { text: environmentQuery.data?.name ?? "…" },
+        ]}
+        title={environmentQuery.data?.name ?? "Environment"}
+      />
 
       <div
         style={{
@@ -149,6 +151,7 @@ export function EnvironmentDetailPage() {
         <Card>
           <H5>Add server</H5>
           <AddServerForm
+            credentials={credentialsQuery.data ?? []}
             onSubmit={(input) => addServerMutation.mutate(input)}
             loading={addServerMutation.isPending}
           />
@@ -159,20 +162,22 @@ export function EnvironmentDetailPage() {
 }
 
 function AddServerForm({
+  credentials,
   onSubmit,
   loading,
 }: {
-  onSubmit: (input: {
-    host: string;
-    port: number;
-    username: string;
-    authKind: SshCredentialKind;
-    secret: string;
-  }) => void;
+  credentials: CredentialSummary[];
+  onSubmit: (input: { host: string; port: number; credential: any }) => void;
   loading: boolean;
 }) {
   const [host, setHost] = useState("");
   const [port, setPort] = useState("22");
+  const [credentialMode, setCredentialMode] = useState<"new" | "existing">(
+    credentials.length > 0 ? "existing" : "new",
+  );
+  const [selectedCredentialId, setSelectedCredentialId] = useState(
+    credentials[0]?.id ?? "",
+  );
   const [username, setUsername] = useState("");
   const [authKind, setAuthKind] = useState<SshCredentialKind>("ssh_password");
   const [secret, setSecret] = useState("");
@@ -181,7 +186,11 @@ function AddServerForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ host, port: Number(port), username, authKind, secret });
+        const credential =
+          credentialMode === "existing"
+            ? { mode: "existing" as const, credentialId: selectedCredentialId }
+            : { mode: "new" as const, authKind, username, secret };
+        onSubmit({ host, port: Number(port), credential });
         setHost("");
         setUsername("");
         setSecret("");
@@ -199,49 +208,85 @@ function AddServerForm({
           onChange={(e) => setPort(e.currentTarget.value)}
         />
       </FormGroup>
-      <FormGroup label="Username">
-        <InputGroup
-          value={username}
-          onChange={(e) => setUsername(e.currentTarget.value)}
-        />
-      </FormGroup>
 
-      <FormGroup label="Authentication">
-        <ButtonGroup fill>
-          <Button
-            text="Password"
-            active={authKind === "ssh_password"}
-            onClick={() => setAuthKind("ssh_password")}
-          />
-          <Button
-            text="Private key"
-            active={authKind === "ssh_private_key"}
-            onClick={() => setAuthKind("ssh_private_key")}
-          />
-        </ButtonGroup>
-      </FormGroup>
+      {credentials.length > 0 && (
+        <FormGroup label="Credential">
+          <ButtonGroup fill style={{ marginBottom: 8 }}>
+            <Button
+              text="Use existing"
+              active={credentialMode === "existing"}
+              onClick={() => setCredentialMode("existing")}
+            />
+            <Button
+              text="New credential"
+              active={credentialMode === "new"}
+              onClick={() => setCredentialMode("new")}
+            />
+          </ButtonGroup>
+        </FormGroup>
+      )}
 
-      {authKind === "ssh_password" ? (
-        <FormGroup label="Password">
-          <InputGroup
-            type="password"
-            value={secret}
-            onChange={(e) => setSecret(e.currentTarget.value)}
+      {credentialMode === "existing" && credentials.length > 0 ? (
+        <FormGroup label="Saved credential">
+          <HTMLSelect
+            fill
+            value={selectedCredentialId}
+            onChange={(e) => setSelectedCredentialId(e.currentTarget.value)}
+            options={credentials.map((c) => ({
+              label: `${c.label} (${c.kind})`,
+              value: c.id,
+            }))}
           />
         </FormGroup>
       ) : (
-        <FormGroup
-          label="Private key"
-          helperText="Paste the PEM-format key content. Passphrase-protected keys aren't supported yet."
-        >
-          <TextArea
-            value={secret}
-            onChange={(e) => setSecret(e.currentTarget.value)}
-            fill
-            // growVertically
-            style={{ fontFamily: "monospace", fontSize: 12, minHeight: 120 }}
-          />
-        </FormGroup>
+        <>
+          <FormGroup label="Username">
+            <InputGroup
+              value={username}
+              onChange={(e) => setUsername(e.currentTarget.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Authentication">
+            <ButtonGroup fill>
+              <Button
+                text="Password"
+                active={authKind === "ssh_password"}
+                onClick={() => setAuthKind("ssh_password")}
+              />
+              <Button
+                text="Private key"
+                active={authKind === "ssh_private_key"}
+                onClick={() => setAuthKind("ssh_private_key")}
+              />
+            </ButtonGroup>
+          </FormGroup>
+          {authKind === "ssh_password" ? (
+            <FormGroup label="Password">
+              <InputGroup
+                type="password"
+                value={secret}
+                onChange={(e) => setSecret(e.currentTarget.value)}
+              />
+            </FormGroup>
+          ) : (
+            <FormGroup
+              label="Private key"
+              helperText="Paste the PEM-format key content. Passphrase-protected keys aren't supported yet."
+            >
+              <TextArea
+                value={secret}
+                onChange={(e) => setSecret(e.currentTarget.value)}
+                fill
+                // growVertically
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: 12,
+                  minHeight: 120,
+                }}
+              />
+            </FormGroup>
+          )}
+        </>
       )}
 
       <Button

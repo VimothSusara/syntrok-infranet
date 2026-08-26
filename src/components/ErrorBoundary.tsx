@@ -34,8 +34,7 @@ export class ErrorBoundary extends Component<
             alignItems: "center",
             justifyContent: "center",
             minHeight: "100vh",
-            backgroundColor: "#111418",
-            color: "#f6f7f9",
+            backgroundColor: "var(--bp-surface-background-color-default-rest)",
           }}
         >
           <NonIdealState

@@ -16,6 +16,8 @@ import { getVersion } from "@tauri-apps/api/app";
 import { formatBytes } from "../lib/format";
 import { showSuccess, showError } from "../lib/toaster";
 import { useThemePreference } from "../lib/theme";
+import { APP_NAME } from "../lib/constants";
+import { PageHeader } from "../components/PageHeader";
 
 export function SettingsPage() {
   const [preference, setPreference] = useThemePreference();
@@ -71,7 +73,7 @@ export function SettingsPage() {
 
   return (
     <div style={{ maxWidth: 520 }}>
-      <H2>Settings</H2>
+      <PageHeader title="Settings" />
 
       <Card style={{ marginBottom: 14 }}>
         <H5>Appearance</H5>
@@ -146,7 +148,7 @@ export function SettingsPage() {
 
       <Card>
         <H5>About</H5>
-        <div style={{ fontWeight: 600 }}>Syntrok InfraNet</div>
+        <div style={{ fontWeight: 600 }}>{APP_NAME}</div>
         <div style={{ fontSize: 12, opacity: 0.6 }}>
           Version {versionQuery.data ?? "…"}
         </div>

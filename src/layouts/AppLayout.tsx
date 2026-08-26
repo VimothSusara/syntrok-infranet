@@ -1,11 +1,21 @@
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Spinner, NonIdealState, Button, Classes } from "@blueprintjs/core";
+import {
+  Spinner,
+  NonIdealState,
+  Button,
+  Alert,
+  Intent,
+  Classes,
+} from "@blueprintjs/core";
 import classNames from "clsx";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffectiveDarkMode } from "../lib/theme";
 import { ensureDefaultWorkspace } from "../domain/workspaces";
 import { queryKeys } from "../domain/queryKeys";
 import { Sidebar } from "../components/Sidebar";
+import { useAutoUpdateCheck } from "../lib/useAutoUpdateChack";
 
 export interface LayoutContext {
   workspaceId: string;
@@ -13,10 +23,10 @@ export interface LayoutContext {
 
 export function AppLayout() {
   const isDark = useEffectiveDarkMode();
-  const shellColors = {
-    backgroundColor: isDark ? "#111418" : "#ffffff",
-    color: isDark ? "#f6f7f9" : "#111418",
+  const shellBackground = {
+    backgroundColor: "var(--bp-surface-background-color-default-rest)",
   };
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
 
   const {
     data: workspace,
@@ -29,6 +39,43 @@ export function AppLayout() {
     queryFn: ensureDefaultWorkspace,
   });
 
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    getCurrentWindow()
+      .onCloseRequested((event) => {
+        event.preventDefault();
+        setConfirmCloseOpen(true);
+      })
+      .then((fn) => {
+        unlisten = fn;
+      });
+
+    return () => unlisten?.();
+  }, []);
+
+  async function handleConfirmClose() {
+    setConfirmCloseOpen(false);
+    await getCurrentWindow().destroy();
+  }
+
+  useAutoUpdateCheck();
+
+  const closeConfirmAlert = (
+    <Alert
+      isOpen={confirmCloseOpen}
+      icon="log-out"
+      intent={Intent.PRIMARY}
+      confirmButtonText="Quit"
+      cancelButtonText="Cancel"
+      onConfirm={handleConfirmClose}
+      onCancel={() => setConfirmCloseOpen(false)}
+      canOutsideClickCancel
+    >
+      <p>Quit Syntrok InfraNet?</p>
+    </Alert>
+  );
+
   if (isError) {
     return (
       <div
@@ -38,7 +85,7 @@ export function AppLayout() {
           alignItems: "center",
           justifyContent: "center",
           minHeight: "100vh",
-          ...shellColors,
+          ...shellBackground,
         }}
       >
         <NonIdealState
@@ -47,6 +94,7 @@ export function AppLayout() {
           description={String(error)}
           action={<Button text="Retry" onClick={() => refetch()} />}
         />
+        {closeConfirmAlert}
       </div>
     );
   }
@@ -60,10 +108,11 @@ export function AppLayout() {
           alignItems: "center",
           justifyContent: "center",
           minHeight: "100vh",
-          ...shellColors,
+          ...shellBackground,
         }}
       >
         <Spinner size={32} />
+        {closeConfirmAlert}
       </div>
     );
   }
@@ -71,14 +120,22 @@ export function AppLayout() {
   return (
     <div
       className={classNames("app-shell", { [Classes.DARK]: isDark })}
-      style={{ display: "flex", padding: 0, ...shellColors }}
+      style={{
+        display: "flex",
+        padding: 0,
+        ...shellBackground,
+      }}
     >
       <Sidebar />
-      <div style={{ flex: 1, padding: "28px 32px", overflow: "auto" }}>
+      <div
+        className="scroll-area"
+        style={{ flex: 1, padding: "0 32px 28px", overflow: "auto" }}
+      >
         <Outlet
           context={{ workspaceId: workspace.id } satisfies LayoutContext}
         />
       </div>
+      {closeConfirmAlert}
     </div>
   );
 }

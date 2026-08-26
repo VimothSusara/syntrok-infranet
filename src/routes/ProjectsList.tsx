@@ -7,6 +7,7 @@ import { InlineAddForm } from "../components/InlineAddForm";
 import { queryKeys } from "../domain/queryKeys";
 import type { LayoutContext } from "../layouts/AppLayout";
 import { showError } from "../lib/toaster";
+import { PageHeader } from "../components/PageHeader";
 
 export function ProjectsListPage() {
   const { workspaceId } = useOutletContext<LayoutContext>();
@@ -32,10 +33,10 @@ export function ProjectsListPage() {
 
   return (
     <div>
-      <H2>Projects</H2>
-      <div style={{ opacity: 0.7, fontSize: 13, marginBottom: 20 }}>
-        {projectsQuery.data?.length ?? 0} projects in this workspace
-      </div>
+      <PageHeader
+        title="Projects"
+        subtitle={`${projectsQuery.data?.length ?? 0} projects in this workspace`}
+      />
 
       <div
         style={{

@@ -2,10 +2,10 @@ import { Card, Classes } from "@blueprintjs/core";
 import type { UsageIntent } from "../lib/format";
 
 const INTENT_COLORS: Record<UsageIntent | "none", string> = {
-  success: "#3dcc91",
-  warning: "#f0b775",
-  danger: "#ff9d92",
-  none: "#8abbff",
+  success: "var(--app-text-success)",
+  warning: "var(--app-text-warning)",
+  danger: "var(--app-text-danger)",
+  none: "var(--app-text-accent)",
 };
 
 interface MetricCardProps {
@@ -49,7 +49,7 @@ export function MetricCard({
           style={{
             height: 6,
             borderRadius: 3,
-            background: "rgba(255,255,255,0.08)",
+            background: "var(--bp-surface-border-color-default)",
             overflow: "hidden",
           }}
         >

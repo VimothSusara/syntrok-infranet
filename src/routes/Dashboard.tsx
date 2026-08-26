@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   Card,
   H2,
@@ -22,10 +22,12 @@ import { queryKeys } from "../domain/queryKeys";
 import type { LayoutContext } from "../layouts/AppLayout";
 import type { Connection } from "../domain/types";
 import { showError, showSuccess } from "../lib/toaster";
+import { PageHeader } from "../components/PageHeader";
 
 export function DashboardPage() {
   const { workspaceId } = useOutletContext<LayoutContext>();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const statsQuery = useQuery({
     queryKey: queryKeys.dashboardStats(workspaceId),
@@ -66,9 +68,29 @@ export function DashboardPage() {
     },
   });
 
+  if (!statsQuery.isLoading && statsQuery.data?.projectCount === 0) {
+    return (
+      <div>
+        <PageHeader title="Dashboard" />
+        <NonIdealState
+          icon="cube-add"
+          title="Welcome to Syntrok InfraNet"
+          description="Create your first project to start connecting and managing servers."
+          action={
+            <Button
+              intent={Intent.PRIMARY}
+              text="Create a project"
+              onClick={() => navigate("/projects")}
+            />
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <H2>Dashboard</H2>
+      <PageHeader title="Dashboard" />
 
       <div
         style={{
@@ -121,7 +143,8 @@ export function DashboardPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 padding: "9px 0",
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
+                borderBottom:
+                  "1px solid var(--bp-surface-border-color-default)",
               }}
             >
               <div>
@@ -210,7 +233,7 @@ function StatCard({
           style={{
             fontSize: 28,
             fontWeight: 600,
-            color: warn ? "#f0b775" : undefined,
+            color: warn ? "var(--app-text-warning)" : undefined,
           }}
         >
           {value ?? 0}

@@ -10,6 +10,7 @@
     "sql:allow-execute",
     "store:default",
     "process:default",
-    "updater:default"
+    "updater:default",
+    "core:window:allow-destroy"
   ]
 }

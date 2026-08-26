@@ -17,4 +17,5 @@ export const queryKeys = {
     systemInfo: (connectionId: string) => ["systemInfo", connectionId] as const,
     services: (connectionId: string) => ["services", connectionId] as const,
     systemMetrics: (connectionId: string) => ["systemMetrics", connectionId] as const,
+    credentials: () => ["credentials"] as const,
 };

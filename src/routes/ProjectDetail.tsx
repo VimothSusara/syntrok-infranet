@@ -6,6 +6,7 @@ import { listEnvironments, createEnvironment } from "../domain/environments";
 import { InlineAddForm } from "../components/InlineAddForm";
 import { queryKeys } from "../domain/queryKeys";
 import { showError } from "../lib/toaster";
+import { PageHeader } from "../components/PageHeader";
 
 export function ProjectDetailPage() {
   const { projectId = "" } = useParams<{ projectId: string }>();
@@ -37,10 +38,13 @@ export function ProjectDetailPage() {
 
   return (
     <div>
-      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 10 }}>
-        <Link to="/projects">Projects</Link>
-      </div>
-      <H2>{projectQuery.data?.name ?? "…"}</H2>
+      <PageHeader
+        breadcrumbs={[
+          { text: "Projects", to: "/projects" },
+          { text: projectQuery.data?.name ?? "…" },
+        ]}
+        title={projectQuery.data?.name ?? "…"}
+      />
 
       <H5 style={{ marginTop: 24 }}>Environments</H5>
       {environmentsQuery.isLoading && <Spinner size={20} />}
@@ -62,7 +66,6 @@ export function ProjectDetailPage() {
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "14px 4px",
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
                 textDecoration: "none",
                 color: "inherit",
               }}
