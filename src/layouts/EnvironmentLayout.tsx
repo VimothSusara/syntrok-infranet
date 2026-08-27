@@ -1,6 +1,6 @@
-import { Outlet, useParams, useLocation, Link } from "react-router-dom";
+import { Outlet, useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Icon } from "@blueprintjs/core";
+import { Classes } from "@blueprintjs/core";
 import type { IconName } from "@blueprintjs/icons";
 import { getProjectById } from "../domain/projects";
 import { getEnvironmentById, listEnvironments } from "../domain/environments";
@@ -8,6 +8,7 @@ import { listConnections } from "../domain/connections";
 import { queryKeys } from "../domain/queryKeys";
 import { PageHeader } from "../components/PageHeader";
 import { SiblingNav } from "../components/SiblingNav";
+import { RailLink } from "../components/layout/RailLink";
 
 interface ConnectorTab {
   path: string;
@@ -95,35 +96,20 @@ export function EnvironmentLayout() {
             gap: 2,
           }}
         >
-          {CONNECTOR_TABS.map((tab) => {
-            const active = activeTab === tab.path;
-            return (
-              <Link
-                key={tab.path}
-                to={tab.path}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  padding: "7px 10px",
-                  borderRadius: 4,
-                  fontSize: 13,
-                  textDecoration: "none",
-                  background: active ? "rgba(45,114,210,0.2)" : "transparent",
-                  color: active ? "var(--app-text-accent)" : "inherit",
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Icon icon={tab.icon} size={16} />
-                  {tab.label}
-                </span>
-                {tab.path === "ssh" && (
-                  <span style={{ fontSize: 11, opacity: 0.6 }}>{sshCount}</span>
-                )}
-              </Link>
-            );
-          })}
+          {CONNECTOR_TABS.map((tab) => (
+            <RailLink
+              key={tab.path}
+              to={tab.path}
+              icon={tab.icon}
+              label={tab.label}
+              active={activeTab === tab.path}
+              trailing={
+                tab.path === "ssh" ? (
+                  <span className={Classes.TEXT_MUTED} style={{ fontSize: 11 }}>{sshCount}</span>
+                ) : undefined
+              }
+            />
+          ))}
         </nav>
 
         <div

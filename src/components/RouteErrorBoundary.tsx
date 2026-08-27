@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { useRouteError, isRouteErrorResponse, useNavigate } from "react-router-dom";
-import { NonIdealState, Button, Classes } from "@blueprintjs/core";
-import classNames from "clsx";
+import { NonIdealState, Button } from "@blueprintjs/core";
+import { CenteredShell } from "./layout/CenteredShell";
 
 function ErrorShell({
   icon,
@@ -15,18 +15,9 @@ function ErrorShell({
   action: ReactElement;
 }) {
   return (
-    <div
-      className={classNames("app-shell", Classes.DARK)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "100vh",
-        backgroundColor: "var(--bp-surface-background-color-default-rest)",
-      }}
-    >
+    <CenteredShell dark>
       <NonIdealState icon={icon} title={title} description={description} action={action} />
-    </div>
+    </CenteredShell>
   );
 }
 

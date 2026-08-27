@@ -23,8 +23,8 @@ export function SiblingNav<T extends { id: string }>({
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <Button
         icon="chevron-left"
-        minimal
-        small
+        variant="minimal"
+        size="small"
         text={prev ? getLabel(prev) : undefined}
         disabled={!prev}
         onClick={() => prev && navigate(getPath(prev))}
@@ -33,9 +33,9 @@ export function SiblingNav<T extends { id: string }>({
         {index + 1} / {items.length}
       </span>
       <Button
-        rightIcon="chevron-right"
-        minimal
-        small
+        endIcon="chevron-right"
+        variant="minimal"
+        size="small"
         text={next ? getLabel(next) : undefined}
         disabled={!next}
         onClick={() => next && navigate(getPath(next))}

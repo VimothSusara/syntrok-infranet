@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { NonIdealState, Button, Classes } from "@blueprintjs/core";
-import classNames from "clsx";
+import { NonIdealState, Button } from "@blueprintjs/core";
+import { CenteredShell } from "./layout/CenteredShell";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -27,16 +27,7 @@ export class ErrorBoundary extends Component<
   render() {
     if (this.state.error) {
       return (
-        <div
-          className={classNames("app-shell", Classes.DARK)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "100vh",
-            backgroundColor: "var(--bp-surface-background-color-default-rest)",
-          }}
-        >
+        <CenteredShell dark>
           <NonIdealState
             icon="error"
             title="Something went wrong"
@@ -45,7 +36,7 @@ export class ErrorBoundary extends Component<
               <Button text="Reload" onClick={() => window.location.reload()} />
             }
           />
-        </div>
+        </CenteredShell>
       );
     }
 

@@ -13,6 +13,7 @@ body,
   --app-text-warning: var(--bp-intent-warning-rest);
   --app-text-danger: var(--bp-intent-danger-rest);
   --app-text-accent: var(--bp-intent-primary-rest);
+  --app-rail-active-bg: rgba(45, 114, 210, 0.2);
 }
 
 .bp6-dark {
@@ -26,19 +27,47 @@ body,
   height: 100vh;
 }
 
-.app-columns {
+/* Blueprint's own base CSS sets `a{text-decoration:none} a:hover{text-decoration:underline}`
+   (a deliberate "underline as a hover affordance" default) and
+   `.bp6-dark a{color:#8abbff}`/`.bp6-dark a:hover{color:#8abbff}` — every
+   one of those is an element+pseudo-class selector, which is MORE
+   SPECIFIC than a bare `.rail-link` class alone, so they were winning on
+   hover and for inactive items' color despite loading first. Qualifying
+   with the `a` element (`a.rail-link`) brings each rule's specificity up
+   to an exact tie with Blueprint's — ties resolve by source order, and
+   this file is imported after Blueprint's CSS in main.tsx, so these win.
+   (Not scoped to a `<nav>` ancestor: Sidebar.tsx's rail is a plain `<div>`,
+   not a `<nav>`, so that would silently fail to match there.) */
+a.rail-link,
+a.rail-link:hover,
+a.rail-link:visited,
+a.rail-link:active {
   display: flex;
-  gap: 16px;
-  flex: 1;
-  min-height: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  text-decoration: none;
+  color: inherit;
 }
 
-.app-column {
-  flex: 1;
-  min-width: 240px;
+.rail-link__main {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+}
+
+.rail-link--child {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+a.rail-link.rail-link--active,
+a.rail-link.rail-link--active:hover {
+  background: var(--app-rail-active-bg);
+  color: var(--app-text-accent);
 }
 
 .scroll-area {

@@ -20,9 +20,9 @@
     "mock:whm": "node scripts/mock-whm-server.mjs"
   },
   "dependencies": {
-    "@blueprintjs/core": "^6.18.0",
-    "@blueprintjs/icons": "^6.13.0",
-    "@blueprintjs/table": "^6.2.4",
+    "@blueprintjs/core": "6.18.0",
+    "@blueprintjs/icons": "6.13.0",
+    "@blueprintjs/table": "6.2.4",
     "@tanstack/react-query": "^5.102.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",

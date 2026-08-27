@@ -146,8 +146,8 @@ export function ProjectDetailPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Button
                   icon="edit"
-                  minimal
-                  small
+                  variant="minimal"
+                  size="small"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEnvToEdit(env);
@@ -155,8 +155,8 @@ export function ProjectDetailPage() {
                 />
                 <Button
                   icon="trash"
-                  minimal
-                  small
+                  variant="minimal"
+                  size="small"
                   intent={Intent.DANGER}
                   onClick={(e) => {
                     e.stopPropagation();

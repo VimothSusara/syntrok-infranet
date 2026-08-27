@@ -4,12 +4,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, Button, Alert, FormGroup, InputGroup, Classes, NonIdealState, Intent } from "@blueprintjs/core";
 import { StickySubHeader } from "../components/StickySubHeader";
 import { MetricCard } from "../components/MetricCard";
-import { RecentActivityCard } from "../components/RecentActivityCard";
-import { getCpanelAccountInfo, changeCpanelPassword } from "../domain/cpanel";
+import { TileGrid } from "../components/layout/TileGrid";
+import { RecentActivityCard, useConnectionActivity } from "../components/RecentActivityCard";
+import { getCpanelAccountInfo, getCpanelUsageStats, changeCpanelPassword } from "../domain/cpanel";
 import { queryKeys } from "../domain/queryKeys";
 import { invalidateConnectionState } from "../lib/queryInvalidation";
 import { showSuccess, showError } from "../lib/toaster";
 import { describeError } from "../lib/errors";
+import { usageIntent } from "../lib/format";
 import type { CpanelConnectionContext } from "../layouts/CpanelConnectionLayout";
 
 export function CpanelAccountPage() {
@@ -22,6 +24,13 @@ export function CpanelAccountPage() {
   const infoQuery = useQuery({
     queryKey: queryKeys.cpanelAccountInfo(connection.id),
     queryFn: () => getCpanelAccountInfo(connection),
+  });
+
+  const activity = useConnectionActivity(connection.id);
+
+  const statsQuery = useQuery({
+    queryKey: queryKeys.cpanelUsageStats(connection.id),
+    queryFn: () => getCpanelUsageStats(connection),
   });
 
   const passwordMutation = useMutation({
@@ -49,7 +58,17 @@ export function CpanelAccountPage() {
     <div>
       <StickySubHeader
         title="Account"
-        actions={<Button small text="Refresh" loading={infoQuery.isFetching} onClick={() => infoQuery.refetch()} />}
+        actions={
+          <Button
+            size="small"
+            text="Refresh"
+            loading={infoQuery.isFetching || statsQuery.isFetching}
+            onClick={() => {
+              infoQuery.refetch();
+              statsQuery.refetch();
+            }}
+          />
+        }
       />
 
       <Card style={{ marginBottom: 16 }}>
@@ -58,21 +77,69 @@ export function CpanelAccountPage() {
         ) : !infoQuery.data ? (
           <div className={Classes.TEXT_MUTED}>Not loaded yet.</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 14 }}>
+          <TileGrid columns={4} style={{ marginBottom: 14 }}>
             <MetricCard
               label="Disk used"
               value={infoQuery.data.megabytesUsed != null ? `${infoQuery.data.megabytesUsed} MB` : "—"}
             />
             <MetricCard
               label="Disk limit"
-              value={infoQuery.data.megabytesLimit != null ? `${infoQuery.data.megabytesLimit} MB` : "unlimited"}
+              value={
+                infoQuery.data.megabytesLimit != null && infoQuery.data.megabytesLimit > 0
+                  ? `${infoQuery.data.megabytesLimit} MB`
+                  : "unlimited"
+              }
             />
-          </div>
+            <MetricCard
+              label="Disk remaining"
+              value={
+                infoQuery.data.megabytesLimit === 0
+                  ? "unlimited"
+                  : infoQuery.data.megabytesRemain != null
+                    ? `${infoQuery.data.megabytesRemain} MB`
+                    : "—"
+              }
+            />
+            <MetricCard
+              label="Inodes used"
+              value={
+                infoQuery.data.inodeLimit === 0
+                  ? `${infoQuery.data.inodesUsed ?? "—"} (unlimited)`
+                  : infoQuery.data.inodesUsed != null && infoQuery.data.inodeLimit != null
+                    ? `${infoQuery.data.inodesUsed} / ${infoQuery.data.inodeLimit}`
+                    : "—"
+              }
+            />
+          </TileGrid>
         )}
         <Button text="Change password" onClick={() => setConfirmOpen(true)} />
       </Card>
 
-      <RecentActivityCard connectionId={connection.id} />
+      <Card style={{ marginBottom: 16 }}>
+        <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, textTransform: "uppercase", marginBottom: 10 }}>
+          Usage
+        </div>
+        {statsQuery.isError ? (
+          <NonIdealState icon="error" title="Could not read usage stats" description={describeError(statsQuery.error)} />
+        ) : !statsQuery.data ? (
+          <div className={Classes.TEXT_MUTED}>Not loaded yet.</div>
+        ) : (
+          <TileGrid columns={3}>
+            {statsQuery.data.map((stat) => (
+              <MetricCard
+                key={stat.id}
+                label={stat.label}
+                value={stat.countText}
+                subtext={stat.maxText ? `of ${stat.maxText}` : undefined}
+                percent={stat.percent ?? undefined}
+                intent={stat.percent != null ? usageIntent(stat.percent) : "none"}
+              />
+            ))}
+          </TileGrid>
+        )}
+      </Card>
+
+      <RecentActivityCard items={activity.items} isLoading={activity.isLoading} />
 
       <Alert
         isOpen={confirmOpen}

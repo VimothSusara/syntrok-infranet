@@ -10,6 +10,7 @@ import {
   getProjectDeleteImpact,
 } from "../domain/projects";
 import { InlineAddForm } from "../components/InlineAddForm";
+import { TileGrid } from "../components/layout/TileGrid";
 import { EditNameDialog } from "../components/EditNameDialog";
 import { queryKeys } from "../domain/queryKeys";
 import type { LayoutContext } from "../layouts/AppLayout";
@@ -80,14 +81,7 @@ export function ProjectsListPage() {
         subtitle={`${projectsQuery.data?.length ?? 0} projects in this workspace`}
       />
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: 14,
-          marginBottom: 20,
-        }}
-      >
+      <TileGrid columns={2} style={{ marginBottom: 20 }}>
         {projectsQuery.data?.map((project) => (
           <Card
             key={project.id}
@@ -105,8 +99,8 @@ export function ProjectsListPage() {
               <div style={{ display: "flex", gap: 2 }}>
                 <Button
                   icon="edit"
-                  minimal
-                  small
+                  variant="minimal"
+                  size="small"
                   onClick={(e) => {
                     e.stopPropagation();
                     setProjectToEdit(project);
@@ -114,8 +108,8 @@ export function ProjectsListPage() {
                 />
                 <Button
                   icon="trash"
-                  minimal
-                  small
+                  variant="minimal"
+                  size="small"
                   intent={Intent.DANGER}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -127,7 +121,7 @@ export function ProjectsListPage() {
             <H4 style={{ margin: "10px 0 4px" }}>{project.name}</H4>
           </Card>
         ))}
-      </div>
+      </TileGrid>
 
       <InlineAddForm
         placeholder="New project name"

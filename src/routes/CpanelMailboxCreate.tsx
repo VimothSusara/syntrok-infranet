@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, FormGroup, InputGroup, Button, Intent } from "@blueprintjs/core";
-import { StickySubHeader } from "../components/StickySubHeader";
+import { FormGroup, InputGroup, Button, Intent } from "@blueprintjs/core";
+import { FormPageShell } from "../components/layout/FormPageShell";
 import { createCpanelMailbox } from "../domain/cpanel";
 import { queryKeys } from "../domain/queryKeys";
 import { showSuccess, showError } from "../lib/toaster";
@@ -40,62 +40,59 @@ export function CpanelMailboxCreatePage() {
   });
 
   return (
-    <div>
-      <StickySubHeader title="Create Mailbox" />
-      <Card style={{ maxWidth: 480 }}>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setAttempted(true);
-            if (!isFormValid) return;
-            createMutation.mutate();
-          }}
+    <FormPageShell title="Create Mailbox">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setAttempted(true);
+          if (!isFormValid) return;
+          createMutation.mutate();
+        }}
+      >
+        <FormGroup
+          label="Email address"
+          helperText={attempted && !isEmailValid ? "Enter a full address, e.g. sales@example.com." : undefined}
+          intent={attempted && !isEmailValid ? Intent.DANGER : Intent.NONE}
         >
-          <FormGroup
-            label="Email address"
-            helperText={attempted && !isEmailValid ? "Enter a full address, e.g. sales@example.com." : undefined}
+          <InputGroup
+            placeholder="sales@example.com"
+            value={email}
             intent={attempted && !isEmailValid ? Intent.DANGER : Intent.NONE}
-          >
-            <InputGroup
-              placeholder="sales@example.com"
-              value={email}
-              intent={attempted && !isEmailValid ? Intent.DANGER : Intent.NONE}
-              onChange={(e) => setEmail(e.currentTarget.value)}
-            />
-          </FormGroup>
-          <FormGroup
-            label="Password"
-            helperText={attempted && !trimmedPassword ? "Password is required." : undefined}
-            intent={attempted && !trimmedPassword ? Intent.DANGER : Intent.NONE}
-          >
-            <InputGroup
-              type="password"
-              value={password}
-              intent={attempted && !trimmedPassword ? Intent.DANGER : Intent.NONE}
-              onChange={(e) => setPassword(e.currentTarget.value)}
-            />
-          </FormGroup>
-          <FormGroup
-            label="Quota (MB, 0 for unlimited)"
-            helperText={attempted && !isQuotaValid ? "Enter a whole number." : undefined}
-            intent={attempted && !isQuotaValid ? Intent.DANGER : Intent.NONE}
-          >
-            <InputGroup
-              value={quota}
-              intent={attempted && !isQuotaValid ? Intent.DANGER : Intent.NONE}
-              onChange={(e) => setQuota(e.currentTarget.value)}
-            />
-          </FormGroup>
-          <Button
-            type="submit"
-            text="Create mailbox"
-            intent={Intent.PRIMARY}
-            fill
-            loading={createMutation.isPending}
-            disabled={attempted && !isFormValid}
+            onChange={(e) => setEmail(e.currentTarget.value)}
           />
-        </form>
-      </Card>
-    </div>
+        </FormGroup>
+        <FormGroup
+          label="Password"
+          helperText={attempted && !trimmedPassword ? "Password is required." : undefined}
+          intent={attempted && !trimmedPassword ? Intent.DANGER : Intent.NONE}
+        >
+          <InputGroup
+            type="password"
+            value={password}
+            intent={attempted && !trimmedPassword ? Intent.DANGER : Intent.NONE}
+            onChange={(e) => setPassword(e.currentTarget.value)}
+          />
+        </FormGroup>
+        <FormGroup
+          label="Quota (MB, 0 for unlimited)"
+          helperText={attempted && !isQuotaValid ? "Enter a whole number." : undefined}
+          intent={attempted && !isQuotaValid ? Intent.DANGER : Intent.NONE}
+        >
+          <InputGroup
+            value={quota}
+            intent={attempted && !isQuotaValid ? Intent.DANGER : Intent.NONE}
+            onChange={(e) => setQuota(e.currentTarget.value)}
+          />
+        </FormGroup>
+        <Button
+          type="submit"
+          text="Create mailbox"
+          intent={Intent.PRIMARY}
+          fill
+          loading={createMutation.isPending}
+          disabled={attempted && !isFormValid}
+        />
+      </form>
+    </FormPageShell>
   );
 }

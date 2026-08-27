@@ -1,9 +1,9 @@
-import { Link, useLocation } from "react-router-dom";
-import { Icon } from "@blueprintjs/core";
+import { useLocation } from "react-router-dom";
 import type { IconName } from "@blueprintjs/icons";
 import { ensureDefaultWorkspace } from "../domain/workspaces";
 import { queryKeys } from "../domain/queryKeys";
 import { useQuery } from "@tanstack/react-query";
+import { RailLink } from "./layout/RailLink";
 
 const NAV_ITEMS: {
   to: string;
@@ -30,12 +30,6 @@ const NAV_ITEMS: {
     icon: "cog",
     match: (p) => p.startsWith("/settings"),
   },
-  {
-    to: "/debug-whm",
-    label: "Debug WHM",
-    icon: "panel-table",
-    match: (p) => p.startsWith("/debug-whm"),
-  }
 ];
 
 export function Sidebar() {
@@ -61,29 +55,15 @@ export function Sidebar() {
       <div style={{ padding: "0 8px 16px", fontSize: 14, fontWeight: 600 }}>
         {workspace?.name ?? "Workspace"}
       </div>
-      {NAV_ITEMS.map((item) => {
-        const active = item.match(location.pathname);
-        return (
-          <Link
-            key={item.to}
-            to={item.to}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "7px 10px",
-              borderRadius: 4,
-              fontSize: 13,
-              textDecoration: "none",
-              background: active ? "rgba(45,114,210,0.2)" : "transparent",
-              color: active ? "var(--app-text-accent)" : "inherit",
-            }}
-          >
-            <Icon icon={item.icon} size={16} />
-            {item.label}
-          </Link>
-        );
-      })}
+      {NAV_ITEMS.map((item) => (
+        <RailLink
+          key={item.to}
+          to={item.to}
+          icon={item.icon}
+          label={item.label}
+          active={item.match(location.pathname)}
+        />
+      ))}
     </div>
   );
 }

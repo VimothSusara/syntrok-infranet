@@ -21,6 +21,8 @@ export const queryKeys = {
     whmServerInfo: (connectionId: string) => ["whmServerInfo", connectionId] as const,
     whmAccounts: (connectionId: string) => ["whmAccounts", connectionId] as const,
     cpanelAccountInfo: (connectionId: string) => ["cpanelAccountInfo", connectionId] as const,
+    cpanelUsageStats: (connectionId: string) => ["cpanelUsageStats", connectionId] as const,
     cpanelMailboxes: (connectionId: string) => ["cpanelMailboxes", connectionId] as const,
     cpanelDomains: (connectionId: string) => ["cpanelDomains", connectionId] as const,
+    cpanelDomainDetail: (connectionId: string, domain: string) => ["cpanelDomainDetail", connectionId, domain] as const,
 };
