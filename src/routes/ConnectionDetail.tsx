@@ -30,13 +30,15 @@ import {
   describeRestartFailure,
   withCredentials,
 } from "../domain/operations";
-import { RecentActivityCard } from "../components/RecentActivityCard";
+import { RecentActivityCard, useConnectionActivity } from "../components/RecentActivityCard";
 import { parseCapabilities } from "../domain/capabilities";
 import { CapabilityGate } from "../components/CapabilityGate";
 import { showSuccess, showError } from "../lib/toaster";
 import { describeError } from "../lib/errors";
 import { queryKeys } from "../domain/queryKeys";
 import { MetricCard } from "../components/MetricCard";
+import { TileGrid } from "../components/layout/TileGrid";
+import { SplitPane } from "../components/layout/SplitPane";
 import { formatBytes, formatUptime, usageIntent } from "../lib/format";
 import { getSystemMetrics } from "../domain/systemMetrics";
 import { PageHeader } from "../components/PageHeader";
@@ -52,6 +54,7 @@ export function ConnectionDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { workspaceId } = useOutletContext<LayoutContext>();
+  const activity = useConnectionActivity(connectionId);
 
   const [serviceToRestart, setServiceToRestart] = useState<string | null>(null);
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
@@ -238,15 +241,15 @@ export function ConnectionDetailPage() {
               getLabel={(c) => `${c.host}:${c.port}`}
             />
             <Button
-              small
-              minimal
+              size="small"
+              variant="minimal"
               icon="edit"
               text="Edit"
               onClick={() => setEditOpen(true)}
             />
             <Button
-              small
-              minimal
+              size="small"
+              variant="minimal"
               intent={Intent.DANGER}
               text="Remove connection"
               onClick={() => setConfirmRemoveOpen(true)}
@@ -286,8 +289,8 @@ export function ConnectionDetailPage() {
 
         {connection.known_host_fingerprint && (
           <Button
-            small
-            minimal
+            size="small"
+            variant="minimal"
             text="Forget saved host key"
             onClick={() => setForgetKeyOpen(true)}
           />
@@ -329,7 +332,7 @@ export function ConnectionDetailPage() {
           </span>
         )}
         <Button
-          small
+          size="small"
           text="Test connection"
           loading={testMutation.isPending}
           onClick={() => testMutation.mutate()}
@@ -347,7 +350,7 @@ export function ConnectionDetailPage() {
         >
           <H5 style={{ margin: 0 }}>System info</H5>
           <Button
-            small
+            size="small"
             text="Refresh"
             loading={systemMetricsQuery.isFetching}
             onClick={() => systemMetricsQuery.refetch()}
@@ -377,14 +380,7 @@ export function ConnectionDetailPage() {
                   : 0;
 
               return (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: 12,
-                    marginBottom: 14,
-                  }}
-                >
+                <TileGrid columns={4} style={{ marginBottom: 14 }}>
                   <MetricCard
                     label="Load average"
                     value={m.loadAverage.load1.toFixed(2)}
@@ -408,13 +404,13 @@ export function ConnectionDetailPage() {
                     label="Uptime"
                     value={formatUptime(m.uptimeSeconds)}
                   />
-                </div>
+                </TileGrid>
               );
             })()}
 
             <Button
-              minimal
-              small
+              variant="minimal"
+              size="small"
               text={rawOpen ? "Hide raw output" : "Show raw output"}
               onClick={() => setRawOpen((v) => !v)}
             />
@@ -425,85 +421,85 @@ export function ConnectionDetailPage() {
         )}
       </Card>
 
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16 }}
-      >
-        <Card>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <H5 style={{ margin: 0 }}>Running services</H5>
-            {capabilities?.systemd && (
-              <Button
-                small
-                text="Refresh"
-                loading={servicesQuery.isFetching}
-                onClick={() => servicesQuery.refetch()}
-              />
-            )}
-          </div>
+      <SplitPane
+        ratio="1.4fr 1fr"
+        left={
+          <Card>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <H5 style={{ margin: 0 }}>Running services</H5>
+              {capabilities?.systemd && (
+                <Button
+                  size="small"
+                  text="Refresh"
+                  loading={servicesQuery.isFetching}
+                  onClick={() => servicesQuery.refetch()}
+                />
+              )}
+            </div>
 
-          <CapabilityGate
-            capabilities={capabilities}
-            requires="systemd"
-            label="systemd"
-          >
-            {servicesQuery.isError ? (
-              <NonIdealState
-                icon="error"
-                title="Could not load services"
-                description={describeError(servicesQuery.error)}
-              />
-            ) : servicesQuery.data === undefined ? (
-              <div className={Classes.TEXT_MUTED}>Not loaded yet.</div>
-            ) : servicesQuery.data.length === 0 ? (
-              <NonIdealState icon="search" title="No running services found" />
-            ) : (
-              <>
-                {capabilities && !capabilities.passwordlessSudo && (
-                  <div
-                    className={Classes.TEXT_MUTED}
-                    style={{ fontSize: 12, marginBottom: 10 }}
-                  >
-                    Restart is unavailable — this user doesn&apos;t have
-                    passwordless sudo configured on this server.
-                  </div>
-                )}
-                <HTMLTable compact interactive style={{ width: "100%" }}>
-                  <tbody>
-                    {servicesQuery.data.map((service) => (
-                      <tr key={service}>
-                        <td>{service}</td>
-                        <td style={{ textAlign: "right" }}>
-                          {capabilities?.passwordlessSudo ? (
-                            <Button
-                              small
-                              intent={Intent.DANGER}
-                              text="Restart"
-                              onClick={() => setServiceToRestart(service)}
-                            />
-                          ) : (
-                            <Tooltip content="Passwordless sudo isn't configured for this user on this server">
-                              <Button small disabled text="Restart" />
-                            </Tooltip>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </HTMLTable>
-              </>
-            )}
-          </CapabilityGate>
-        </Card>
-
-        <RecentActivityCard connectionId={connectionId} />
-      </div>
+            <CapabilityGate
+              capabilities={capabilities}
+              requires="systemd"
+              label="systemd"
+            >
+              {servicesQuery.isError ? (
+                <NonIdealState
+                  icon="error"
+                  title="Could not load services"
+                  description={describeError(servicesQuery.error)}
+                />
+              ) : servicesQuery.data === undefined ? (
+                <div className={Classes.TEXT_MUTED}>Not loaded yet.</div>
+              ) : servicesQuery.data.length === 0 ? (
+                <NonIdealState icon="search" title="No running services found" />
+              ) : (
+                <>
+                  {capabilities && !capabilities.passwordlessSudo && (
+                    <div
+                      className={Classes.TEXT_MUTED}
+                      style={{ fontSize: 12, marginBottom: 10 }}
+                    >
+                      Restart is unavailable — this user doesn&apos;t have
+                      passwordless sudo configured on this server.
+                    </div>
+                  )}
+                  <HTMLTable compact interactive style={{ width: "100%" }}>
+                    <tbody>
+                      {servicesQuery.data.map((service) => (
+                        <tr key={service}>
+                          <td>{service}</td>
+                          <td style={{ textAlign: "right" }}>
+                            {capabilities?.passwordlessSudo ? (
+                              <Button
+                                size="small"
+                                intent={Intent.DANGER}
+                                text="Restart"
+                                onClick={() => setServiceToRestart(service)}
+                              />
+                            ) : (
+                              <Tooltip content="Passwordless sudo isn't configured for this user on this server">
+                                <Button size="small" disabled text="Restart" />
+                              </Tooltip>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </HTMLTable>
+                </>
+              )}
+            </CapabilityGate>
+          </Card>
+        }
+        right={<RecentActivityCard items={activity.items} isLoading={activity.isLoading} />}
+      />
 
       <Alert
         isOpen={serviceToRestart !== null}

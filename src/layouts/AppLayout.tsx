@@ -17,6 +17,7 @@ import { ensureDefaultWorkspace } from "../domain/workspaces";
 import { isMigrationChecksumError, repairMigrationChecksums } from "../domain/dbRepair";
 import { queryKeys } from "../domain/queryKeys";
 import { Sidebar } from "../components/Sidebar";
+import { CenteredShell } from "../components/layout/CenteredShell";
 import { useAutoUpdateCheck } from "../lib/useAutoUpdateChack";
 import { showError, showSuccess } from "../lib/toaster";
 import { describeError } from "../lib/errors";
@@ -100,16 +101,7 @@ export function AppLayout() {
 
   if (isError) {
     return (
-      <div
-        className={classNames("app-shell", { [Classes.DARK]: isDark })}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          ...shellBackground,
-        }}
-      >
+      <CenteredShell dark={isDark}>
         <NonIdealState
           icon="error"
           title="Could not start the app"
@@ -129,25 +121,16 @@ export function AppLayout() {
           }
         />
         {closeConfirmAlert}
-      </div>
+      </CenteredShell>
     );
   }
 
   if (isLoading || !workspace) {
     return (
-      <div
-        className={classNames("app-shell", { [Classes.DARK]: isDark })}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          ...shellBackground,
-        }}
-      >
+      <CenteredShell dark={isDark}>
         <Spinner size={32} />
         {closeConfirmAlert}
-      </div>
+      </CenteredShell>
     );
   }
 

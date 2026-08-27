@@ -21,6 +21,7 @@ import { queryKeys } from "../domain/queryKeys";
 import { showError, showSuccess } from "../lib/toaster";
 import { describeError } from "../lib/errors";
 import { StickySubHeader } from "../components/StickySubHeader";
+import { SplitPane } from "../components/layout/SplitPane";
 
 export function EnvironmentCpanelPage() {
   const { environmentId = "" } = useParams<{ environmentId: string }>();
@@ -54,55 +55,58 @@ export function EnvironmentCpanelPage() {
     <div>
       <StickySubHeader title="cPanel Accounts" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16, alignItems: "start" }}>
-        <Card>
-          {connectionsQuery.isLoading && <Spinner size={20} />}
-          {connectionsQuery.data && cpanelConnections.length === 0 && (
-            <NonIdealState icon="panel-table" title="No cPanel accounts yet" description="Add one on the right to get started." />
-          )}
-          {cpanelConnections.length > 0 && (
-            <HTMLTable compact interactive style={{ width: "100%" }}>
-              <thead>
-                <tr>
-                  <th>Host</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {cpanelConnections.map((c) => (
-                  <tr key={c.id}>
-                    <td>
-                      <Link to={`/cpanel-connections/${c.id}`} style={{ color: "inherit" }}>
-                        {c.host}:{c.port}
-                      </Link>
-                    </td>
-                    <td>
-                      <Tag intent={c.last_verified_at ? Intent.SUCCESS : Intent.WARNING} minimal>
-                        {c.last_verified_at ? "verified" : "unverified"}
-                      </Tag>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <Link to={`/cpanel-connections/${c.id}`}>
-                        <Button small text="View" />
-                      </Link>
-                    </td>
+      <SplitPane
+        left={
+          <Card>
+            {connectionsQuery.isLoading && <Spinner size={20} />}
+            {connectionsQuery.data && cpanelConnections.length === 0 && (
+              <NonIdealState icon="panel-table" title="No cPanel accounts yet" description="Add one on the right to get started." />
+            )}
+            {cpanelConnections.length > 0 && (
+              <HTMLTable compact interactive style={{ width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th>Host</th>
+                    <th>Status</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </HTMLTable>
-          )}
-        </Card>
-
-        <Card>
-          <H5>Add cPanel account</H5>
-          <AddCpanelConnectionForm
-            credentials={cpanelCredentials}
-            onSubmit={(input) => addConnectionMutation.mutate(input)}
-            loading={addConnectionMutation.isPending}
-          />
-        </Card>
-      </div>
+                </thead>
+                <tbody>
+                  {cpanelConnections.map((c) => (
+                    <tr key={c.id}>
+                      <td>
+                        <Link to={`/cpanel-connections/${c.id}`} style={{ color: "inherit" }}>
+                          {c.host}:{c.port}
+                        </Link>
+                      </td>
+                      <td>
+                        <Tag intent={c.last_verified_at ? Intent.SUCCESS : Intent.WARNING} minimal>
+                          {c.last_verified_at ? "verified" : "unverified"}
+                        </Tag>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <Link to={`/cpanel-connections/${c.id}`}>
+                          <Button size="small" text="View" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </HTMLTable>
+            )}
+          </Card>
+        }
+        right={
+          <Card>
+            <H5>Add cPanel account</H5>
+            <AddCpanelConnectionForm
+              credentials={cpanelCredentials}
+              onSubmit={(input) => addConnectionMutation.mutate(input)}
+              loading={addConnectionMutation.isPending}
+            />
+          </Card>
+        }
+      />
     </div>
   );
 }

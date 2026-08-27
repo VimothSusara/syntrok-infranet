@@ -14,6 +14,7 @@ import {
   InputGroup,
 } from "@blueprintjs/core";
 import { StickySubHeader } from "../components/StickySubHeader";
+import { ListActionBar } from "../components/layout/ListActionBar";
 import {
   listWhmAccounts,
   suspendWhmAccount,
@@ -99,21 +100,13 @@ export function WhmAccountsPage() {
       <StickySubHeader
         title="Accounts"
         actions={
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <InputGroup
-              leftIcon="search"
-              placeholder="Search domain or user…"
-              value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
-              style={{ width: 220 }}
-            />
-            <Button
-              small
-              text="Refresh"
-              loading={accountsQuery.isFetching}
-              onClick={() => accountsQuery.refetch()}
-            />
-          </div>
+          <ListActionBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search domain or user…"
+            onRefresh={() => accountsQuery.refetch()}
+            refreshing={accountsQuery.isFetching}
+          />
         }
       />
 
@@ -162,7 +155,7 @@ export function WhmAccountsPage() {
                     </td>
                     <td style={{ textAlign: "right" }}>
                       <Button
-                        small
+                        size="small"
                         intent={
                           account.suspended ? Intent.SUCCESS : Intent.DANGER
                         }

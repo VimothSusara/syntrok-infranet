@@ -6,9 +6,8 @@ import {
   Spinner,
   NonIdealState,
   Button,
-  Tag,
-  Intent,
   Classes,
+  Intent,
 } from "@blueprintjs/core";
 import {
   getDashboardStats,
@@ -24,6 +23,9 @@ import { showError, showSuccess } from "../lib/toaster";
 import { describeError } from "../lib/errors";
 import { invalidateConnectionState } from "../lib/queryInvalidation";
 import { PageHeader } from "../components/PageHeader";
+import { TileGrid } from "../components/layout/TileGrid";
+import { SplitPane } from "../components/layout/SplitPane";
+import { RecentActivityCard, type ActivityItem } from "../components/RecentActivityCard";
 import { testWhmConnection } from "../domain/whm";
 import { testCpanelConnection } from "../domain/cpanel";
 
@@ -89,18 +91,27 @@ export function DashboardPage() {
     );
   }
 
+  const activityItems: ActivityItem[] = (activityQuery.data ?? []).map((event) => ({
+    id: event.id,
+    result: event.result,
+    content: (
+      <div>
+        <div style={{ fontSize: 13 }}>
+          {event.action}{" "}
+          {event.connectionHost && <span className={Classes.TEXT_MUTED}>&mdash; {event.connectionHost}</span>}
+        </div>
+        <div className={Classes.TEXT_MUTED} style={{ fontSize: 11 }}>
+          {event.projectName ?? "removed connection"} &middot; {new Date(event.created_at).toLocaleString()}
+        </div>
+      </div>
+    ),
+  }));
+
   return (
     <div>
       <PageHeader title="Dashboard" />
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 14,
-          margin: "20px 0",
-        }}
-      >
+      <TileGrid columns={4} gap={14} style={{ margin: "20px 0" }}>
         <StatCard
           label="Projects"
           value={statsQuery.data?.projectCount}
@@ -122,98 +133,61 @@ export function DashboardPage() {
           value={activityQuery.data?.length}
           loading={activityQuery.isLoading}
         />
-      </div>
+      </TileGrid>
 
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 14 }}
-      >
-        <Card>
-          <H5>Recent activity</H5>
-          {activityQuery.isLoading && <Spinner size={20} />}
-          {activityQuery.data?.length === 0 && (
-            <NonIdealState
-              icon="history"
-              title="No activity yet"
-              description="Actions you take on servers will show up here."
-            />
-          )}
-          {activityQuery.data?.map((event) => (
-            <div
-              key={event.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "9px 0",
-                borderBottom:
-                  "1px solid var(--bp-surface-border-color-default)",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 13 }}>
-                  {event.action}{" "}
-                  {event.connectionHost && (
-                    <span style={{ opacity: 0.7 }}>
-                      &mdash; {event.connectionHost}
-                    </span>
-                  )}
-                </div>
-                <div style={{ fontSize: 11, opacity: 0.6 }}>
-                  {event.projectName ?? "removed connection"} &middot;{" "}
-                  {new Date(event.created_at).toLocaleString()}
-                </div>
-              </div>
-              <Tag
-                intent={
-                  event.result === "success" ? Intent.SUCCESS : Intent.DANGER
-                }
-                minimal
-              >
-                {event.result}
-              </Tag>
-            </div>
-          ))}
-        </Card>
-
-        <Card>
-          <H5>Attention needed</H5>
-          {unverifiedQuery.isLoading && <Spinner size={20} />}
-          {unverifiedQuery.data?.length === 0 && (
-            <NonIdealState
-              icon="tick-circle"
-              title="All verified"
-              description="Every connection has been tested successfully."
-            />
-          )}
-          {unverifiedQuery.data?.map((connection) => (
-            <div key={connection.id} style={{ marginBottom: 10 }}>
-              <Link
-                to={
-                  connection.kind === "whm"
-                    ? `/whm-connections/${connection.id}`
-                    : connection.kind === "cpanel"
-                      ? `/cpanel-connections/${connection.id}`
-                      : `/connections/${connection.id}`
-                }
-                style={{ fontSize: 13, fontWeight: 600, color: "inherit" }}
-              >
-                {connection.host}:{connection.port}
-              </Link>
-
-              <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 6 }}>
-                {connection.projectName} / {connection.environmentName} &middot;
-                never verified
-              </div>
-              <Button
-                small
-                fill
-                text="Test connection"
-                loading={testMutation.isPending}
-                onClick={() => testMutation.mutate(connection)}
+      <SplitPane
+        ratio="1.5fr 1fr"
+        gap={14}
+        left={
+          <RecentActivityCard
+            title="Recent activity"
+            items={activityItems}
+            isLoading={activityQuery.isLoading}
+            emptyDescription="Actions you take on servers will show up here."
+          />
+        }
+        right={
+          <Card>
+            <H5>Attention needed</H5>
+            {unverifiedQuery.isLoading && <Spinner size={20} />}
+            {unverifiedQuery.data?.length === 0 && (
+              <NonIdealState
+                icon="tick-circle"
+                title="All verified"
+                description="Every connection has been tested successfully."
               />
-            </div>
-          ))}
-        </Card>
-      </div>
+            )}
+            {unverifiedQuery.data?.map((connection) => (
+              <div key={connection.id} style={{ marginBottom: 10 }}>
+                <Link
+                  to={
+                    connection.kind === "whm"
+                      ? `/whm-connections/${connection.id}`
+                      : connection.kind === "cpanel"
+                        ? `/cpanel-connections/${connection.id}`
+                        : `/connections/${connection.id}`
+                  }
+                  style={{ fontSize: 13, fontWeight: 600, color: "inherit" }}
+                >
+                  {connection.host}:{connection.port}
+                </Link>
+
+                <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, marginBottom: 6 }}>
+                  {connection.projectName} / {connection.environmentName} &middot;
+                  never verified
+                </div>
+                <Button
+                  size="small"
+                  fill
+                  text="Test connection"
+                  loading={testMutation.isPending}
+                  onClick={() => testMutation.mutate(connection)}
+                />
+              </div>
+            ))}
+          </Card>
+        }
+      />
     </div>
   );
 }

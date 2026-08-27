@@ -17,6 +17,7 @@ import { CpanelAccountPage } from "./routes/CpanelAccount";
 import { CpanelMailboxesPage } from "./routes/CpanelMailboxes";
 import { CpanelMailboxCreatePage } from "./routes/CpanelMailboxCreate";
 import { CpanelDomainsPage } from "./routes/CpanelDomains";
+import { CpanelDomainAddPage } from "./routes/CpanelDomainAdd";
 import { AuditLogPage } from "./routes/AuditLog";
 import { SettingsPage } from "./routes/Settings";
 import { RouteErrorBoundary, NotFoundPage } from "./components/RouteErrorBoundary";
@@ -148,16 +149,7 @@ export const router = createHashRouter([
           { path: "email", element: <CpanelMailboxesPage /> },
           { path: "email/create", element: <CpanelMailboxCreatePage /> },
           { path: "domain", element: <CpanelDomainsPage /> },
-          {
-            path: "domain/add",
-            element: (
-              <ConnectorComingSoonPage
-                label="Add Domain"
-                icon="add"
-                description="Add an addon domain or subdomain once this feature ships."
-              />
-            ),
-          },
+          { path: "domain/add", element: <CpanelDomainAddPage /> },
           {
             path: "dns",
             element: (
@@ -222,7 +214,6 @@ export const router = createHashRouter([
       },
       { path: "/audit", element: <AuditLogPage /> },
       { path: "/settings", element: <SettingsPage /> },
-      // { path: "/debug-whm", element: <DebugWhmPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

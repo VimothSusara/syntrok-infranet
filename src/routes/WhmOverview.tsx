@@ -11,7 +11,8 @@ import {
 } from "@blueprintjs/core";
 import { StickySubHeader } from "../components/StickySubHeader";
 import { MetricCard } from "../components/MetricCard";
-import { RecentActivityCard } from "../components/RecentActivityCard";
+import { TileGrid } from "../components/layout/TileGrid";
+import { RecentActivityCard, useConnectionActivity } from "../components/RecentActivityCard";
 import { getWhmServerInfo } from "../domain/whm";
 import { queryKeys } from "../domain/queryKeys";
 import { describeError } from "../lib/errors";
@@ -20,6 +21,7 @@ import type { WhmConnectionContext } from "../layouts/WhmConnectionLayout";
 export function WhmOverviewPage() {
   const { connection } = useOutletContext<WhmConnectionContext>();
   const [rawOpen, setRawOpen] = useState(false);
+  const activity = useConnectionActivity(connection.id);
 
   const infoQuery = useQuery({
     queryKey: queryKeys.whmServerInfo(connection.id),
@@ -32,7 +34,7 @@ export function WhmOverviewPage() {
         title="Overview"
         actions={
           <Button
-            small
+            size="small"
             text="Refresh"
             loading={infoQuery.isFetching}
             onClick={() => infoQuery.refetch()}
@@ -51,14 +53,7 @@ export function WhmOverviewPage() {
           <div className={Classes.TEXT_MUTED}>Not loaded yet.</div>
         ) : (
           <>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 12,
-                marginBottom: 14,
-              }}
-            >
+            <TileGrid columns={3} style={{ marginBottom: 14 }}>
               <MetricCard
                 label="Hostname"
                 value={infoQuery.data.hostname ?? "—"}
@@ -80,10 +75,10 @@ export function WhmOverviewPage() {
                     : undefined
                 }
               />
-            </div>
+            </TileGrid>
             <Button
-              minimal
-              small
+              variant="minimal"
+              size="small"
               text={rawOpen ? "Hide raw output" : "Show raw output"}
               onClick={() => setRawOpen((v) => !v)}
             />
@@ -96,7 +91,7 @@ export function WhmOverviewPage() {
         )}
       </Card>
 
-      <RecentActivityCard connectionId={connection.id} />
+      <RecentActivityCard items={activity.items} isLoading={activity.isLoading} />
     </div>
   );
 }

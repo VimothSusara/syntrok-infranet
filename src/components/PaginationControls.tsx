@@ -25,7 +25,7 @@ export function PaginationControls({
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <Button
-          small
+          size="small"
           text="Previous"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
@@ -34,7 +34,7 @@ export function PaginationControls({
           Page {page} of {totalPages}
         </div>
         <Button
-          small
+          size="small"
           text="Next"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}

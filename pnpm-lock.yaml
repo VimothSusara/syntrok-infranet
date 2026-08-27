@@ -9,13 +9,13 @@ importers:
   .:
     dependencies:
       '@blueprintjs/core':
-        specifier: ^6.18.0
+        specifier: 6.18.0
         version: 6.18.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@blueprintjs/icons':
-        specifier: ^6.13.0
+        specifier: 6.13.0
         version: 6.13.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@blueprintjs/table':
-        specifier: ^6.2.4
+        specifier: 6.2.4
         version: 6.2.4(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-query':
         specifier: ^5.102.0

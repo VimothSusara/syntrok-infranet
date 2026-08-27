@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Outlet, useParams, useLocation, useNavigate, Link } from "react-router-dom";
+import { Outlet, useParams, useLocation, useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Icon, Button, Tag, Intent, Alert, Spinner, NonIdealState } from "@blueprintjs/core";
+import { Button, Tag, Intent, Alert, Spinner, NonIdealState } from "@blueprintjs/core";
 import type { IconName } from "@blueprintjs/icons";
+import { RailLink } from "../components/layout/RailLink";
 import {
   getConnectionById,
   deleteConnection,
@@ -202,10 +203,10 @@ export function CpanelConnectionLayout() {
               getPath={(c) => `/cpanel-connections/${c.id}`}
               getLabel={(c) => `${c.host}:${c.port}`}
             />
-            <Button small minimal icon="edit" text="Edit" onClick={() => setEditOpen(true)} />
+            <Button size="small" variant="minimal" icon="edit" text="Edit" onClick={() => setEditOpen(true)} />
             <Button
-              small
-              minimal
+              size="small"
+              variant="minimal"
               intent={Intent.DANGER}
               text="Remove connection"
               onClick={() => setConfirmRemoveOpen(true)}
@@ -220,7 +221,7 @@ export function CpanelConnectionLayout() {
             ? `verified ${new Date(connection.last_verified_at).toLocaleString()}`
             : "unverified"}
         </Tag>
-        <Button small text="Test connection" loading={testMutation.isPending} onClick={() => testMutation.mutate()} />
+        <Button size="small" text="Test connection" loading={testMutation.isPending} onClick={() => testMutation.mutate()} />
       </div>
 
       <div style={{ display: "flex", gap: 16, flex: 1, minHeight: 0 }}>
@@ -233,28 +234,11 @@ export function CpanelConnectionLayout() {
             return (
               <div key={item.path}>
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <Link
-                    to={linkTarget}
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "7px 10px",
-                      borderRadius: 4,
-                      fontSize: 13,
-                      textDecoration: "none",
-                      background: isParentActive ? "rgba(45,114,210,0.2)" : "transparent",
-                      color: isParentActive ? "var(--app-text-accent)" : "inherit",
-                    }}
-                  >
-                    <Icon icon={item.icon} size={16} />
-                    {item.label}
-                  </Link>
+                  <RailLink to={linkTarget} icon={item.icon} label={item.label} active={isParentActive} fill />
                   {item.children && (
                     <Button
-                      minimal
-                      small
+                      variant="minimal"
+                      size="small"
                       icon={isExpanded ? "chevron-down" : "chevron-right"}
                       onClick={() => setExpanded((prev) => ({ ...prev, [item.path]: !isExpanded }))}
                     />
@@ -262,25 +246,15 @@ export function CpanelConnectionLayout() {
                 </div>
                 {item.children && isExpanded && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 2, marginLeft: 20 }}>
-                    {item.children.map((child) => {
-                      const active = activePath === child.path;
-                      return (
-                        <Link
-                          key={child.path}
-                          to={child.path}
-                          style={{
-                            padding: "6px 10px",
-                            borderRadius: 4,
-                            fontSize: 12,
-                            textDecoration: "none",
-                            background: active ? "rgba(45,114,210,0.2)" : "transparent",
-                            color: active ? "var(--app-text-accent)" : "inherit",
-                          }}
-                        >
-                          {child.label}
-                        </Link>
-                      );
-                    })}
+                    {item.children.map((child) => (
+                      <RailLink
+                        key={child.path}
+                        to={child.path}
+                        label={child.label}
+                        active={activePath === child.path}
+                        variant="child"
+                      />
+                    ))}
                   </div>
                 )}
               </div>
@@ -288,7 +262,7 @@ export function CpanelConnectionLayout() {
           })}
         </nav>
 
-        <div className="scroll-area" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <div className="scroll-area" style={{ flex: 1, minHeight: 0, overflowY: "auto", width: "100%" }}>
           <Outlet
             context={{ connection, resourceId: resourceQuery.data?.id ?? null, workspaceId } satisfies CpanelConnectionContext}
           />

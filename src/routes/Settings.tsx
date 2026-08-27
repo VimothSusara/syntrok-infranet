@@ -138,7 +138,7 @@ export function SettingsPage() {
           </div>
         ) : (
           <Button
-            small
+            size="small"
             text="Check for updates"
             loading={checkUpdateMutation.isPending}
             onClick={() => checkUpdateMutation.mutate()}
@@ -149,7 +149,7 @@ export function SettingsPage() {
       <Card>
         <H5>About</H5>
         <div style={{ fontWeight: 600 }}>{APP_NAME}</div>
-        <div style={{ fontSize: 12, opacity: 0.6 }}>
+        <div className={Classes.TEXT_MUTED} style={{ fontSize: 12 }}>
           Version {versionQuery.data ?? "…"}
         </div>
       </Card>

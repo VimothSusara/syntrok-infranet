@@ -1,6 +1,7 @@
 import { useOutletContext } from "react-router-dom";
-import { Card, Button, HTMLTable, InputGroup, Classes, NonIdealState } from "@blueprintjs/core";
+import { Card, HTMLTable, Classes, NonIdealState } from "@blueprintjs/core";
 import { StickySubHeader } from "../components/StickySubHeader";
+import { ListActionBar } from "../components/layout/ListActionBar";
 import { listCpanelMailboxes } from "../domain/cpanel";
 import { queryKeys } from "../domain/queryKeys";
 import { describeError } from "../lib/errors";
@@ -35,16 +36,13 @@ export function CpanelMailboxesPage() {
       <StickySubHeader
         title="All Mailboxes"
         actions={
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <InputGroup
-              leftIcon="search"
-              placeholder="Search email…"
-              value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
-              style={{ width: 220 }}
-            />
-            <Button small text="Refresh" loading={isFetching} onClick={() => refetch()} />
-          </div>
+          <ListActionBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search email…"
+            onRefresh={() => refetch()}
+            refreshing={isFetching}
+          />
         }
       />
 

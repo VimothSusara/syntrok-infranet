@@ -23,7 +23,7 @@ export function InlineAddForm({
           placeholder={placeholder}
           value={value}
           onChange={(e) => setValue(e.currentTarget.value)}
-          rightElement={<Button minimal icon="plus" type="submit" />}
+          rightElement={<Button variant="minimal" icon="plus" type="submit" />}
         />
       </FormGroup>
     </form>
