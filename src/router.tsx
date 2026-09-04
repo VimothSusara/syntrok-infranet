@@ -18,6 +18,13 @@ import { CpanelMailboxesPage } from "./routes/CpanelMailboxes";
 import { CpanelMailboxCreatePage } from "./routes/CpanelMailboxCreate";
 import { CpanelDomainsPage } from "./routes/CpanelDomains";
 import { CpanelDomainAddPage } from "./routes/CpanelDomainAdd";
+import { CpanelServerInfoPage } from "./routes/CpanelServerInfo";
+import { CpanelFileManagerPage } from "./routes/CpanelFileManager";
+import { CpanelStatisticsPage } from "./routes/CpanelStatistics";
+import { CpanelMysqlDatabasesPage } from "./routes/CpanelMysqlDatabases";
+import { CpanelPostgresDatabasesPage } from "./routes/CpanelPostgresDatabases";
+import { CpanelSslPage } from "./routes/CpanelSsl";
+import { CpanelOverviewPage } from "./routes/CpanelOverview";
 import { AuditLogPage } from "./routes/AuditLog";
 import { SettingsPage } from "./routes/Settings";
 import { RouteErrorBoundary, NotFoundPage } from "./components/RouteErrorBoundary";
@@ -135,21 +142,13 @@ export const router = createHashRouter([
         element: <CpanelConnectionLayout />,
         children: [
           { index: true, element: <Navigate to="overview" replace /> },
-          {
-            path: "overview",
-            element: (
-              <ConnectorComingSoonPage
-                label="Overview"
-                icon="home"
-                description="A rich, at-a-glance dashboard for this account once this feature ships."
-              />
-            ),
-          },
+          { path: "overview", element: <CpanelOverviewPage /> },
           { path: "account", element: <CpanelAccountPage /> },
           { path: "email", element: <CpanelMailboxesPage /> },
           { path: "email/create", element: <CpanelMailboxCreatePage /> },
           { path: "domain", element: <CpanelDomainsPage /> },
           { path: "domain/add", element: <CpanelDomainAddPage /> },
+          { path: "file-manager", element: <CpanelFileManagerPage /> },
           {
             path: "dns",
             element: (
@@ -160,55 +159,13 @@ export const router = createHashRouter([
               />
             ),
           },
-          {
-            path: "database/mysql",
-            element: (
-              <ConnectorComingSoonPage
-                label="MySQL"
-                icon="database"
-                description="Manage MySQL/MariaDB databases and users once this feature ships."
-              />
-            ),
-          },
-          {
-            path: "database/postgresql",
-            element: (
-              <ConnectorComingSoonPage
-                label="PostgreSQL"
-                icon="database"
-                description="Manage PostgreSQL databases and users once this feature ships."
-              />
-            ),
-          },
-          {
-            path: "server-info",
-            element: (
-              <ConnectorComingSoonPage
-                label="Server Info"
-                icon="info-sign"
-                description="View server information visible to this account once this feature ships."
-              />
-            ),
-          },
-          {
-            path: "ssl",
-            element: (
-              <ConnectorComingSoonPage
-                label="SSL Certificates"
-                icon="lock"
-                description="Manage SSL certificates for your domains once this feature ships."
-              />
-            ),
-          },
+          { path: "database/mysql", element: <CpanelMysqlDatabasesPage /> },
+          { path: "database/postgresql", element: <CpanelPostgresDatabasesPage /> },
+          { path: "server-info", element: <CpanelServerInfoPage /> },
+          { path: "ssl", element: <CpanelSslPage /> },
           {
             path: "statistics",
-            element: (
-              <ConnectorComingSoonPage
-                label="Statistics"
-                icon="chart"
-                description="View domain traffic statistics once this feature ships."
-              />
-            ),
+            element: <CpanelStatisticsPage />,
           },
         ],
       },

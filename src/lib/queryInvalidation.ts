@@ -28,4 +28,10 @@ export function invalidateConnectionState(
     queryClient.invalidateQueries({ queryKey: queryKeys.cpanelUsageStats(params.connectionId) });
     queryClient.invalidateQueries({ queryKey: queryKeys.cpanelMailboxes(params.connectionId) });
     queryClient.invalidateQueries({ queryKey: queryKeys.cpanelDomains(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelMysqlDatabases(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelMysqlUsers(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelPostgresDatabases(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelPostgresUsers(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelSslCertificates(params.connectionId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cpanelAutosslProblems(params.connectionId) });
 }
