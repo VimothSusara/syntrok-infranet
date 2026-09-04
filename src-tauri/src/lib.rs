@@ -53,6 +53,7 @@ pub fn run() {
             ssh::ssh_discover,
             whm::whm_call,
             cpanel::cpanel_call,
+            cpanel::cpanel_call_legacy,
             db_repair::repair_migration_checksums,
         ])
         .run(tauri::generate_context!())

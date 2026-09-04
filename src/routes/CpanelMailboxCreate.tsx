@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FormGroup, InputGroup, Button, Intent } from "@blueprintjs/core";
 import { FormPageShell } from "../components/layout/FormPageShell";
+import { PasswordField } from "../components/PasswordField";
 import { createCpanelMailbox } from "../domain/cpanel";
 import { queryKeys } from "../domain/queryKeys";
 import { showSuccess, showError } from "../lib/toaster";
@@ -18,6 +19,7 @@ export function CpanelMailboxCreatePage() {
   const [password, setPassword] = useState("");
   const [quota, setQuota] = useState("250");
   const [attempted, setAttempted] = useState(false);
+  const [passwordReady, setPasswordReady] = useState(true);
 
   const trimmedEmail = email.trim();
   const isEmailValid = trimmedEmail.includes("@") && trimmedEmail.split("@")[1]?.length > 0;
@@ -46,6 +48,10 @@ export function CpanelMailboxCreatePage() {
           e.preventDefault();
           setAttempted(true);
           if (!isFormValid) return;
+          if (!passwordReady) {
+            showError("Confirm you've copied the generated password first.");
+            return;
+          }
           createMutation.mutate();
         }}
       >
@@ -66,12 +72,7 @@ export function CpanelMailboxCreatePage() {
           helperText={attempted && !trimmedPassword ? "Password is required." : undefined}
           intent={attempted && !trimmedPassword ? Intent.DANGER : Intent.NONE}
         >
-          <InputGroup
-            type="password"
-            value={password}
-            intent={attempted && !trimmedPassword ? Intent.DANGER : Intent.NONE}
-            onChange={(e) => setPassword(e.currentTarget.value)}
-          />
+          <PasswordField value={password} onChange={setPassword} onReadyChange={setPasswordReady} />
         </FormGroup>
         <FormGroup
           label="Quota (MB, 0 for unlimited)"

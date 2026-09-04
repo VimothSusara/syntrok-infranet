@@ -23,3 +23,10 @@ export function usageIntent(percent: number): UsageIntent {
     if (percent >= 70) return "warning";
     return "success";
 }
+
+export function certificateExpiryIntent(notAfterMs: number): UsageIntent {
+    const daysLeft = (notAfterMs - Date.now()) / (24 * 60 * 60 * 1000);
+    if (daysLeft < 0) return "danger";
+    if (daysLeft < 30) return "warning";
+    return "success";
+}

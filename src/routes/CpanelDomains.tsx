@@ -165,6 +165,7 @@ export function CpanelDomainsPage() {
         confirmButtonText="Remove"
         cancelButtonText="Cancel"
         loading={removeMutation.isPending}
+        style={{ width: 440 }}
         onConfirm={() => removeTarget && removeMutation.mutate(removeTarget)}
         onCancel={() => setRemoveTarget(null)}
         canOutsideClickCancel
@@ -185,6 +186,7 @@ export function CpanelDomainsPage() {
         intent={Intent.PRIMARY}
         confirmButtonText="Continue"
         cancelButtonText="Cancel"
+        style={{ width: 500 }}
         onConfirm={() => {
           if (!newDocRoot.trim()) {
             showError("Enter a document root.");
@@ -226,6 +228,7 @@ export function CpanelDomainsPage() {
         confirmButtonText="Yes, change it"
         cancelButtonText="Back"
         loading={docRootMutation.isPending}
+        style={{ width: 460 }}
         onConfirm={() => docRootMutation.mutate()}
         onCancel={() => setDocRootConfirmOpen(false)}
         canOutsideClickCancel

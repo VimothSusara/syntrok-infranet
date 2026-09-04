@@ -58,6 +58,7 @@ const RAIL_ITEMS: RailItem[] = [
       { path: "domain/add", label: "Add Domain" },
     ],
   },
+  { path: "file-manager", label: "File Manager", icon: "folder-open" },
   { path: "dns", label: "DNS", icon: "map" },
   {
     path: "database",

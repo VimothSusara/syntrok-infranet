@@ -5,6 +5,7 @@ import { Card, Button, Alert, FormGroup, InputGroup, Classes, NonIdealState, Int
 import { StickySubHeader } from "../components/StickySubHeader";
 import { MetricCard } from "../components/MetricCard";
 import { TileGrid } from "../components/layout/TileGrid";
+import { PasswordField } from "../components/PasswordField";
 import { RecentActivityCard, useConnectionActivity } from "../components/RecentActivityCard";
 import { getCpanelAccountInfo, getCpanelUsageStats, changeCpanelPassword } from "../domain/cpanel";
 import { queryKeys } from "../domain/queryKeys";
@@ -20,6 +21,7 @@ export function CpanelAccountPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [newPasswordReady, setNewPasswordReady] = useState(true);
 
   const infoQuery = useQuery({
     queryKey: queryKeys.cpanelAccountInfo(connection.id),
@@ -51,6 +53,7 @@ export function CpanelAccountPage() {
       setConfirmOpen(false);
       setOldPassword("");
       setNewPassword("");
+      setNewPasswordReady(true);
     },
   });
 
@@ -148,11 +151,19 @@ export function CpanelAccountPage() {
         confirmButtonText="Change password"
         cancelButtonText="Cancel"
         loading={passwordMutation.isPending}
-        onConfirm={() => passwordMutation.mutate()}
+        style={{ width: 480 }}
+        onConfirm={() => {
+          if (!newPasswordReady) {
+            showError("Confirm you've copied the generated password first.");
+            return;
+          }
+          passwordMutation.mutate();
+        }}
         onCancel={() => {
           setConfirmOpen(false);
           setOldPassword("");
           setNewPassword("");
+          setNewPasswordReady(true);
         }}
         canOutsideClickCancel
       >
@@ -161,7 +172,7 @@ export function CpanelAccountPage() {
           <InputGroup type="password" value={oldPassword} onChange={(e) => setOldPassword(e.currentTarget.value)} />
         </FormGroup>
         <FormGroup label="New password">
-          <InputGroup type="password" value={newPassword} onChange={(e) => setNewPassword(e.currentTarget.value)} />
+          <PasswordField value={newPassword} onChange={setNewPassword} onReadyChange={setNewPasswordReady} />
         </FormGroup>
       </Alert>
     </div>
