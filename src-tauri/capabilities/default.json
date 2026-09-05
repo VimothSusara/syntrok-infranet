@@ -11,6 +11,10 @@
     "store:default",
     "process:default",
     "updater:default",
-    "core:window:allow-destroy"
+    "core:window:allow-destroy",
+    "dialog:default",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file"
   ]
 }
