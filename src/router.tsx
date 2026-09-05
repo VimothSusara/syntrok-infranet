@@ -25,6 +25,7 @@ import { CpanelMysqlDatabasesPage } from "./routes/CpanelMysqlDatabases";
 import { CpanelPostgresDatabasesPage } from "./routes/CpanelPostgresDatabases";
 import { CpanelSslPage } from "./routes/CpanelSsl";
 import { CpanelOverviewPage } from "./routes/CpanelOverview";
+import { CpanelDnsPage } from "./routes/CpanelDns";
 import { AuditLogPage } from "./routes/AuditLog";
 import { SettingsPage } from "./routes/Settings";
 import { RouteErrorBoundary, NotFoundPage } from "./components/RouteErrorBoundary";
@@ -149,16 +150,7 @@ export const router = createHashRouter([
           { path: "domain", element: <CpanelDomainsPage /> },
           { path: "domain/add", element: <CpanelDomainAddPage /> },
           { path: "file-manager", element: <CpanelFileManagerPage /> },
-          {
-            path: "dns",
-            element: (
-              <ConnectorComingSoonPage
-                label="DNS"
-                icon="map"
-                description="Manage DNS zone records for your domains once this feature ships."
-              />
-            ),
-          },
+          { path: "dns", element: <CpanelDnsPage /> },
           { path: "database/mysql", element: <CpanelMysqlDatabasesPage /> },
           { path: "database/postgresql", element: <CpanelPostgresDatabasesPage /> },
           { path: "server-info", element: <CpanelServerInfoPage /> },

@@ -1,4 +1,5 @@
 mod cpanel;
+mod db_backup;
 mod db_repair;
 mod keychain;
 mod ssh;
@@ -39,6 +40,8 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations("sqlite:infranet.db", migrations)
@@ -55,6 +58,8 @@ pub fn run() {
             cpanel::cpanel_call,
             cpanel::cpanel_call_legacy,
             db_repair::repair_migration_checksums,
+            db_backup::backup_database,
+            db_backup::restore_database,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

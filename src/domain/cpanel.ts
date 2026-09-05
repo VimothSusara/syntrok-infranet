@@ -1493,3 +1493,139 @@ export async function isAutosslCheckInProgress(connection: Connection): Promise<
     if (result.status !== 1) throw new Error(describeApiErrors(result, "Failed to check AutoSSL status"));
     return Number(result.data ?? 0) === 1;
 }
+
+// ---------------------------------------------------------------------
+// DNS Zone Management — plain UAPI, verified against docs/cpanel.openapi.json.
+// There is no add_record/edit_record/remove_record API — ZoneEdit only
+// has resetzone (a destructive full wipe). Real per-record management
+// goes through DNS::parse_zone (read the zone as a flat, line-indexed
+// list) + DNS::mass_edit_zone (submit adds/edits/removals as a batch,
+// gated by the zone's current SOA serial for optimistic concurrency —
+// a mismatched serial fails the whole call, so callers must always read
+// serial fresh off the most recently loaded zone, never cache it).
+// ---------------------------------------------------------------------
+
+export interface CpanelDnsRecord {
+    lineIndex: number;
+    name: string;
+    recordType: string;
+    ttl: number;
+    data: string[];
+}
+
+export interface CpanelDnsZone {
+    serial: number;
+    records: CpanelDnsRecord[];
+}
+
+export interface CpanelDnsRecordInput {
+    name: string;
+    recordType: string;
+    ttl: number;
+    data: string[];
+}
+
+// Zone content can in principle contain arbitrary binary (per the real
+// UAPI docs), so it's returned base64-encoded — decoded here the same
+// "text only, binary shows garbled" way the File Manager's text editor
+// already handles content it doesn't guarantee full binary safety for.
+function decodeZoneBase64(value: string): string {
+    try {
+        return atob(value);
+    } catch {
+        return value;
+    }
+}
+
+export async function getDnsZone(connection: Connection, zone: string): Promise<CpanelDnsZone> {
+    const creds = await withCpanelCredentials(connection);
+    const result = await callCpanel(creds, "DNS", "parse_zone", { zone });
+    if (result.status !== 1) throw new Error(describeApiErrors(result, "Failed to load DNS zone"));
+    const items = (result.data ?? []) as any[];
+    const records: CpanelDnsRecord[] = items
+        .filter((item) => item.type === "record")
+        .map((item) => ({
+            lineIndex: Number(item.line_index),
+            name: decodeZoneBase64(String(item.dname_b64 ?? "")),
+            recordType: String(item.record_type ?? ""),
+            ttl: Number(item.ttl ?? 0),
+            data: ((item.data_b64 ?? []) as string[]).map(decodeZoneBase64),
+        }));
+    // SOA data is [mname, rname, serial, refresh, retry, expire, minimum]
+    // per standard DNS field order — inferred from general DNS knowledge,
+    // NOT confirmed against a real cPanel response. If wrong, every
+    // mass_edit_zone call will fail immediately and unambiguously with a
+    // serial-mismatch error, making this easy to catch and fix.
+    const soa = records.find((r) => r.recordType === "SOA");
+    const serial = soa ? Number(soa.data[2]) : 0;
+    return { serial, records: records.filter((r) => r.recordType !== "SOA") };
+}
+
+async function massEditZone(
+    connection: Connection,
+    resourceId: string,
+    action: "dns.record_add" | "dns.record_edit" | "dns.record_delete",
+    zone: string,
+    serial: number,
+    params: Record<string, string>,
+    detail: string,
+): Promise<void> {
+    const creds = await withCpanelCredentials(connection);
+    let result: CpanelCallResult;
+    try {
+        result = await callCpanel(creds, "DNS", "mass_edit_zone", { zone, serial: String(serial), ...params });
+    } catch (err) {
+        await recordAudit({ connectionId: connection.id, resourceId, action, detail: `${detail}: ${String(err)}`, result: "failure" });
+        throw err;
+    }
+    const ok = result.status === 1;
+    await recordAudit({
+        connectionId: connection.id,
+        resourceId,
+        action,
+        detail: ok ? detail : `${detail}: ${describeApiErrors(result, "unknown error")}`,
+        result: ok ? "success" : "failure",
+    });
+    if (!ok) throw new Error(describeApiErrors(result, "DNS zone update failed"));
+}
+
+export function addDnsRecord(
+    connection: Connection,
+    resourceId: string,
+    zone: string,
+    serial: number,
+    record: CpanelDnsRecordInput,
+): Promise<void> {
+    const payload = JSON.stringify({ dname: record.name, ttl: record.ttl, record_type: record.recordType, data: record.data });
+    return massEditZone(connection, resourceId, "dns.record_add", zone, serial, { add: payload }, `${zone}: ${record.name} (${record.recordType})`);
+}
+
+export function editDnsRecord(
+    connection: Connection,
+    resourceId: string,
+    zone: string,
+    serial: number,
+    lineIndex: number,
+    record: CpanelDnsRecordInput,
+): Promise<void> {
+    const payload = JSON.stringify({ line_index: lineIndex, dname: record.name, ttl: record.ttl, record_type: record.recordType, data: record.data });
+    return massEditZone(connection, resourceId, "dns.record_edit", zone, serial, { edit: payload }, `${zone}: ${record.name} (${record.recordType})`);
+}
+
+export function removeDnsRecord(
+    connection: Connection,
+    resourceId: string,
+    zone: string,
+    serial: number,
+    record: CpanelDnsRecord,
+): Promise<void> {
+    return massEditZone(
+        connection,
+        resourceId,
+        "dns.record_delete",
+        zone,
+        serial,
+        { remove: String(record.lineIndex) },
+        `${zone}: ${record.name} (${record.recordType})`,
+    );
+}

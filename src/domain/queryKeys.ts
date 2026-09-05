@@ -40,4 +40,5 @@ export const queryKeys = {
     cpanelSslCertificates: (connectionId: string) => ["cpanelSslCertificates", connectionId] as const,
     cpanelSslCapableDomains: (connectionId: string) => ["cpanelSslCapableDomains", connectionId] as const,
     cpanelAutosslProblems: (connectionId: string) => ["cpanelAutosslProblems", connectionId] as const,
+    cpanelDnsZone: (connectionId: string, zone: string) => ["cpanelDnsZone", connectionId, zone] as const,
 };
